@@ -1,0 +1,34 @@
+parse dynamic-sets => extract list of dynamic sets
+   comma and new-line separated space independent list
+
+parse strategies => extract list of strategies for generating new initial points
+ kind of strategies:
+   stage:
+     e: when dynamic set is empty
+     1: when dynamic set receive its first element
+     n: when dynamic set receive an additional element
+   looping:
+     i: independent new initial point
+     c: new initial point derived from a previous solution point (not allowed for empty stage)
+     f: new family of initial points derived from a previous solution point by using the strategie on each element of the set in the previous iteration (allowed only for additional stage)
+   looping variables:
+     %e: new element in the set (not allowed for independent looping)
+     %c: current element in the iteration over the previous value of the set (allowed only for family looping)
+
+parse stop => extract stop criterion
+
+generating initial points for first iteration
+
+main loop:
+  for each initial point and each solver:
+    run gams
+    extract solution from the lst file
+  next iteration:
+    prepare addition of a new element in the first dynamic set
+    generate new initial points
+    check stop criterion
+    if stop criterion reached and another dynamic set is available, empty dynamic set and goto 'next iteration' using next dynamic set
+    if stop criterion reached and no more dynamic set is available, exit main loop
+  goto main loop
+
+print best solution
