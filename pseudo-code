@@ -1,21 +1,24 @@
 parse dynamic-sets => extract list of dynamic sets
    comma and new-line separated space independent list
 
+parse stop => extract stop criterion
+   [CL!]
+
 parse strategies => extract list of strategies for generating new initial points
  kind of strategies:
-   stage:
-     e: when dynamic set is empty
-     1: when dynamic set receive its first element
-     n: when dynamic set receive an additional element
-   looping:
+   derivation:
      i: independent new initial point
-     c: new initial point derived from a previous solution point (not allowed for empty stage)
-     f: new family of initial points derived from a previous solution point by using the strategie on each element of the set in the previous iteration (allowed only for additional stage)
+     d: new initial point derived from a previous solution point
+     f: new family of initial points derived from a previous solution point by using the strategy on each element of the set in the previous iteration
+   stage:
+     e: when dynamic set is empty (allowed only for independent derivation)
+     1: when dynamic set receive its first element (not allowed for family derivation)
+     n: when dynamic set receive an additional element [default for family derivation]
+     *: always (allowed only [and default] for independent derivation)
+     +: when dynamic set is non-empty (not allowed for family derivation) [default for derived derivation]
    looping variables:
-     %e: new element in the set (not allowed for independent looping)
-     %c: current element in the iteration over the previous value of the set (allowed only for family looping)
-
-parse stop => extract stop criterion
+     %1: new element in the set (not allowed for independent derivation)
+     %2: current element in the iteration over the previous value of the set (allowed only for family derivation)
 
 generating initial points for first iteration
 
@@ -26,9 +29,68 @@ main loop:
   next iteration:
     prepare addition of a new element in the first dynamic set
     generate new initial points
-    check stop criterion
-    if stop criterion reached and another dynamic set is available, empty dynamic set and goto 'next iteration' using next dynamic set
-    if stop criterion reached and no more dynamic set is available, exit main loop
+    check stop criteria {if no feasible point has been generated during this iteration, stop criterion is reached for the previously modified set}
+    if one of stop criterion is reached and another dynamic set is available, empty dynamic set and goto 'next iteration' using next dynamic set
+    if one of stop criterion is reached and no more dynamic set is available, exit main loop
   goto main loop
 
 print best solution
+
+
+==============================================
+
+variables parsing instructions:
+
+line starting by "" : ignore this one and the next 2 lines
+line whose first column start by a number : ignore
+line whose columns are ("LOWER" "LEVEL" "UPPER" "MARGINAL") : ignore
+empty line : ignore
+
+> line starting by "**** REPORT SUMMARY :" : stop
+
+> line starting by "---- VAR {name}" : start a new variable
+
+> depending on variable dimension:
+
+if dimension = 0:
+    one line starting by "---- VAR {name}", value in 5th col
+else:
+    each line starting by text (letter) is an coordinate:
+      label in 1st col, value in 3rd col
+
+=============================
+
+variables parsing instructions:
+
+line starting by "" : ignore this one and the next 2 lines
+line whose first column start by a number : ignore
+empty line : ignore
+
+line starting by "----  {line-number} {name}" : start a new variable
+line whose columns are ("(" "ALL" 0.0 ")" : variable is 0 => skip it
+
+depending on variable dimension:
+
+== if dimension == 0:
+
+one line:
+    "----   {line-number} {name} = {value} {comment}"
+
+== if dimension = 1:
+
+lines are:
+      "{label} {value}, {label} {value}, ..."
+
+== if dimension >= 2
+
+column head : last dim
+line head : last - 2 and last - 1 dim
+index : last - 3 and previous
+
+line starting by INDEX : update index (list/vector)
+
+line starting by space (resp. "+") and whose first (resp. second) column is text:
+     updates label->column matching [column heads]
+
+line starting by text [letter] :
+     data line, first column is (last - 2).(last - 1) labels, following columns according to label->column matching
