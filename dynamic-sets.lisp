@@ -521,10 +521,10 @@ eventualy with a max size in parenthesis, similarly to GAMS syntax."
                                      :count 2)
        while line
 
-       unless (let ((length (length columns)))
-                (or (zerop length)
-                    (alpha-char-p (elt line 0))
-                    (and (= length 1)
+       unless (let ((cols (length columns)))
+                (or (zerop cols)
+                    (not (starts-with #\Space line))
+                    (and (= cols 1)
                          (string= ";" (first columns)))))
        collect (let ((decl (split-sequence #\( (first columns))))
                  (make-gams-variable (first decl)
