@@ -1,4 +1,4 @@
-#!/usr/bin/sbcl --script
+#!/usr/local/bin/sbcl-script
 #|
 Licensed under 3-clause BSD License:
 Copyright © 2010, Mathieu Lemoine
@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
 ;; TODO : break down code in smaller files
+
+(declaim (optimize debug))
 
 (cl:in-package #:cl)
 
@@ -122,24 +124,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (declare (type set-point set-point))
   (loop
      for set in *sets*
-     collect (or (dynamic-set-max-size set)
-                 (gethash set set-point))))
+     collect (1+ (or (dynamic-set-max-size set)
+                     (gethash set set-point)))))
 
 (defparameter *set-point-loader* ())
-
-(defun load-set-point (set-point)
-  (declare (type set-point set-point))
-  (with-open-file (stream *set-point-loader*
-                          :direction :output
-                          :if-exists :supersede)
-    (maphash (lambda (set current-size)
-               (let ((name (dynamic-set-name set)))
-                 (format stream "$phantom ~A\nSet ~:*~A /~{~A~^, ~}/;\n\n"
-                         name
-                         (or (mapcar (curry #'generate-set-element set)
-                                     (iota current-size :start 1))
-                             (list name)))))
-             set-point)))
 
 (defun generate-set-element (set point)
   (declare (type dynamic-set set)
@@ -148,6 +136,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (concatenate 'string
                  (string-downcase (dynamic-set-name set))
                  (write-to-string point))))
+
+
+(defun load-set-point (set-point)
+  (declare (type set-point set-point))
+  (with-open-file (stream *set-point-loader*
+                          :direction :output
+                          :if-exists :supersede)
+    (maphash (lambda (set current-size)
+               (let ((name (dynamic-set-name set)))
+                 (format stream "$phantom ~A~%Set ~:*~A /~{~A~^, ~}/;~%~%"
+                         name
+                         (or (mapcar (curry #'generate-set-element set)
+                                     (iota current-size :start 1))
+                             (list name)))))
+             set-point)))
 
 (defparameter *variables* ())
 
@@ -211,7 +214,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     (if current-set
         (remove-if (compose #'not (curry #'string-equal (dynamic-set-name current-set)))
                    strategies-stage
-                   :key #'strategy-set))))
+                   :key #'strategy-set)
+        strategies-stage)))
 
 (defstruct (initial-point
              (:constructor %make-initial-point
@@ -305,24 +309,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                        (subseq history (1+ (search "/" history :from-end t)))
                                        ".init"))
          (current-set     (initial-point-set initial-point))
-         (new-set-element (generate-set-element current-set
-                                                (gethash current-set
-                                                         (initial-point-set-point initial-point))))
-         (old-set-element (generate-set-element current-set (initial-point-set-index initial-point))))
+         (new-set-element (when current-set
+                            (generate-set-element current-set
+                                                  (gethash current-set
+                                                           (initial-point-set-point initial-point)))))
+         (old-set-element (when current-set
+                            (generate-set-element current-set
+                                                  (initial-point-set-index initial-point)))))
     (setf (initial-point-file-name initial-point) file)
     (with-accessors ((strategy initial-point-strategy)) initial-point
       (with-accessors ((strategy-derivation strategy-derivation)) strategy
         (with-open-file (stream file :direction :output :if-does-not-exist :create)
-          (princ (concatenate 'string "* " history "\n") stream)
+          (format stream "* ~A~%" history)
           (unless (eql strategy-derivation :independent)
             (write-gams-point stream)
-            (princ "\n" stream))
-          (princ (concatenate 'string "$batinclude " (strategy-file-name strategy)) stream)
+            (princ #\Newline))
+          (format stream "$batinclude ~A" (strategy-file-name strategy))
           (unless (eql strategy-derivation :independent)
-            (princ (concatenate 'string  " " old-set-element) stream)
+            (format stream " ~A" old-set-element)
             (when (eql strategy-derivation :family)
-              (princ (concatenate 'string " " new-set-element) stream)))
-          (princ "\n" stream))))))
+              (format stream " ~A" new-set-element)))
+          (princ #\Newline))))))
 
 (defparameter *initial-point-loader* "")
 
@@ -362,8 +369,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (defparameter *independent-stop-criteria*
   (list
    (make-stop-criterion check-max-set-size (set set-point)
-     (> (dynamic-set-max-size set)
-        (gethash set set-point)))))
+     (when (dynamic-set-max-size set)
+       (> (dynamic-set-max-size set)
+          (gethash set set-point))))))
 
 (defmacro def-stop-criterion (decl
                               (&optional (set-var           (gensym "set/"))
@@ -384,19 +392,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (defun generate-next-set-point (previous-set-point result-points
                                 &aux (current-set (first *sets*)))
   (declare (type set-point previous-set-point)
-           (type dynamic-set current-set))
-  (let ((new-set-point (copy-hash-table previous-set-point)))
-    (incf (gethash current-set new-set-point))
-    (flet ((check-stop-criterion (stop-criterion)
-             (declare (type stop-criterion stop-criterion))
-             (funcall (stop-criterion-function stop-criterion)
-                      current-set new-set-point result-points)))
-      (if (and (notany #'check-stop-criterion *independent-stop-criteria*)
-               (notany #'check-stop-criterion (dynamic-set-stop-criteria current-set)))
-          (values new-set-point current-set)
-          (let ((*sets* (rest *sets*)))
-            (setf (gethash current-set new-set-point) 0)
-            (generate-next-set-point new-set-point result-points))))))
+           (type (or null dynamic-set) current-set))
+  (when current-set
+    (let ((new-set-point (copy-hash-table previous-set-point)))
+      (incf (gethash current-set new-set-point))
+      (flet ((check-stop-criterion (stop-criterion)
+               (declare (type stop-criterion stop-criterion))
+               (funcall (stop-criterion-function stop-criterion)
+                        current-set new-set-point result-points)))
+        (if (and (notany #'check-stop-criterion *independent-stop-criteria*)
+                 (notany #'check-stop-criterion (dynamic-set-stop-criteria current-set)))
+            (values new-set-point current-set)
+            (let ((*sets* (rest *sets*)))
+              (setf (gethash current-set new-set-point) 0)
+              (generate-next-set-point new-set-point result-points)))))))
 
 (defstruct (point-key
              (:constructor make-point-key
@@ -415,7 +424,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (defun write-gams-point (point &optional (stream *standard-output*))
   (declare (type point point))
   (maphash (lambda (key val)
-             (format stream "~A.l~@[(~{'~A'~^,~})~] = ~A;\n"
+             (format stream "~A.l~@[(~{'~A'~^,~})~] = ~A~%"
                      (point-key-name key) (point-key-indices key)
                      val))
            point))
@@ -431,8 +440,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (solver-status    nil :read-only t :type unsigned-byte)
   (solver-iteration nil :read-only t :type unsigned-byte)
   (solver-time      nil :read-only t :type (real 0))
-  (objective-value  nil :read-only t :type (or real nil))
-  (point            nil :read-only t :type (or hash-table nil)))
+  (objective-value  nil :read-only t :type (or real null))
+  (point            nil :read-only t :type (or point null)))
 
 (defun %feasible-point-p (solver-status)
   (declare (unsigned-byte solver-status))
@@ -454,7 +463,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                       solver-status solver-iteration solver-time objective-value point))
 
 (defun print-result-point (point &optional (stream *standard-output*))
-  (declare (type result-point point))
+  (declare (type (or null result-point) point))
+  (unless point
+    (return-from print-result-point))
   (format stream "initial point: ~A~%"
           (initial-point-file-name (result-point-initial-point point)))
   (format stream "solver: ~A~%" (result-point-solver point))
@@ -466,14 +477,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (princ #\Newline)
   (values))
 
-(defun solve-gams-model (gams-model initial-point &rest solvers)
+(defun solve-gams-model (gams-model initial-point &optional solvers)
   (declare (type initial-point initial-point))
-  #+sbcl (sb-ext:run-program "gams" (list* gams-model solvers))
+  #+sbcl (let ((exit-code (sb-ext:process-exit-code
+                           (sb-ext:run-program "gams" (list* gams-model solvers)
+                                               :search t
+                                               :output *standard-output*))))
+           (unless (zerop exit-code)
+             (error "gams exited with error code ~A (gams ~A ~{~A~^ ~})"
+                    exit-code gams-model solvers)))
   #-sbcl (error "This script currently only supports SBCL")
   (parse-result-point (concatenate 'string
-                                   (subseq gams-model
-                                           (1+ (find gams-model ".gms"
-                                                     :from-end t)))
+                                   (subseq gams-model 0
+                                           (search ".gms" gams-model
+                                                   :from-end t))
                                    ".lst")
                       initial-point))
 
@@ -548,20 +565,20 @@ Read external documentation to get more information on the strategies file."
 
 (defun parse-strategy (line)
   "Parse a single strategy description"
-  (destructuring-bind (comment line)
+  (destructuring-bind (comment &optional line)
       (mapcar (curry #'string-trim '(#\Space))
               (split-sequence #\: line))
     (when (null line)
       (shiftf line comment ""))
-    (destructuring-bind (file-name derivation set stage)
+    (destructuring-bind (file-name &optional (derivation #\i) set stage)
         (mapcar (curry #'string-trim '(#\Space))
                 (split-sequence #\, line))
-      (let ((derivation (ecase (coerce 'character derivation)
+      (let ((derivation (ecase (coerce derivation 'character)
                           (#\i :independent)
                           (#\d :derived)
                           (#\f :family)))
-            (stage   (ecase (and stage (coerce 'character stage))
-                       (nil nil)
+            (stage   (ecase (and stage (coerce stage 'character))
+                       ((nil) nil)
                        (#\e :empty-set)
                        (#\1 :first-element)
                        (#\n :additional-element)
@@ -685,24 +702,33 @@ Read external documentation to get more information on the strategies file."
 
        finally (return line))))
 
+(defun parse-solver-list (file)
+  (with-open-file (stream file :direction :input)
+    (loop
+       for line = (read-line stream nil nil) while line
+
+       if (string= line "default") collect nil
+       else collect (split-sequence #\Space line
+                                    :remove-empty-subseqs t))))
+
                                         ; main
 
 (if (>= (length *arguments*) 8)
-    ;; TODO : replace huge let by destructuring-bind
     (destructuring-bind (initial-points-directory
                          sets-list stop-criteria-list strategies-list
                          model-name variable-list
                          *set-point-loader* *initial-point-loader*
-                         . solvers)
+                         solvers-list)
         *arguments*
       (let ((*sets*                   (parse-sets  sets-list))
             (stop-criteria            (parse-stop-criteria stop-criteria-list))
             (strategies               (parse-strategies    strategies-list))
-            (*variables*              (parse-variable-list variable-list)))
+            (*variables*              (parse-variable-list variable-list))
+            (solvers                  (parse-solver-list   solvers-list)))
         (declare (ignore stop-criteria))
         (let* ((min-result) (max-result))
           (loop named main-loop
-             for feasible-point-found-p = nil
+             for feasible-point-found-p = t then nil
 
              for (set-point current-set) = (list (make-set-point))
              then (let ((*sets* (if feasible-point-found-p
@@ -758,4 +784,4 @@ Read external documentation to get more information on the strategies file."
           (print-result-point min-result)
           (print-result-point max-result))))
     (unless (null *arguments*)
-      (error "This script requires at least 7 arguments: initial-points-directory dynamic-sets stop-criteria strategies gams-model.gms variables.inc set-point.inc initializer.inc [solvers ...]")))
+      (error "This script requires at least 7 arguments: initial-points-directory dynamic-sets stop-criteria strategies gams-model.gms variables.inc set-point.inc initializer.inc solvers")))
