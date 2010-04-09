@@ -101,24 +101,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          *sets*)
     (the set-point set-point)))
 
-;; TODO (?) : replace depth-first by breadth-first
-(defun generate-next-set-point (previous-set-point result-points
-                                &aux (current-set (first *sets*)))
-  (declare (type set-point previous-set-point)
-           (type dynamic-set current-set))
-  (let ((new-set-point (copy-hash-table previous-set-point)))
-    (incf (gethash current-set new-set-point))
-    (flet ((check-stop-criterion (stop-criterion)
-             (declare (type stop-criterion stop-criterion))
-             (funcall (stop-criterion-function stop-criterion)
-                      current-set new-set-point result-points)))
-      (if (and (notany #'check-stop-criterion *independent-stop-criteria*)
-               (notany #'check-stop-criterion (dynamic-set-stop-criteria current-set)))
-          (values new-set-point current-set)
-          (let ((*sets* (rest *sets*)))
-            (setf (gethash current-set new-set-point) 0)
-            (generate-next-set-point new-set-point result-points))))))
-
 (defun stringify-set-point (set-point)
   (declare (type set-point set-point))
   (the string
@@ -147,7 +129,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (defun load-set-point (set-point)
   (declare (type set-point set-point))
-  (with-open-file (stream *set-point-load*
+  (with-open-file (stream *set-point-loader*
                           :direction :output
                           :if-exists :supersede)
     (maphash (lambda (set current-size)
@@ -397,6 +379,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
              ,(if set-specific-p
                   `(dynamic-set-stop-criteria (find-set-from-name ,set))
                   '*independent-stop-criteria*)))))
+
+;; TODO (?) : replace depth-first by breadth-first
+(defun generate-next-set-point (previous-set-point result-points
+                                &aux (current-set (first *sets*)))
+  (declare (type set-point previous-set-point)
+           (type dynamic-set current-set))
+  (let ((new-set-point (copy-hash-table previous-set-point)))
+    (incf (gethash current-set new-set-point))
+    (flet ((check-stop-criterion (stop-criterion)
+             (declare (type stop-criterion stop-criterion))
+             (funcall (stop-criterion-function stop-criterion)
+                      current-set new-set-point result-points)))
+      (if (and (notany #'check-stop-criterion *independent-stop-criteria*)
+               (notany #'check-stop-criterion (dynamic-set-stop-criteria current-set)))
+          (values new-set-point current-set)
+          (let ((*sets* (rest *sets*)))
+            (setf (gethash current-set new-set-point) 0)
+            (generate-next-set-point new-set-point result-points))))))
 
 (defstruct (point-key
              (:constructor make-point-key
@@ -692,7 +692,7 @@ Read external documentation to get more information on the strategies file."
     (destructuring-bind (initial-points-directory
                          sets-list stop-criteria-list strategies-list
                          model-name variable-list
-                         *set-point-load* *initial-point-loader*
+                         *set-point-loader* *initial-point-loader*
                          . solvers)
         *arguments*
       (let ((*sets*                   (parse-sets  sets-list))
