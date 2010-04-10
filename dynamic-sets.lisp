@@ -61,7 +61,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
              for feasible-point-found-p = t then nil
 
              for (set-point current-set) = (list (make-set-point))
-             then (let ((*sets* (if feasible-point-found-p
+             then (let ((*sets* (if (or feasible-point-found-p
+                                        (< (gethash current-set set-point)
+                                           (dynamic-set-min-size current-set)))
                                     *sets*
                                     (remove current-set *sets*))))
                     (multiple-value-list
