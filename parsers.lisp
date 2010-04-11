@@ -36,11 +36,30 @@ set-name[([min-size,]max-size)] [comment]"
   (with-open-file (dynamic-sets file)
     (loop
        for line = (read-line dynamic-sets nil nil) while line
-       nconc (mapcar #'parse-set (split-sequence #\, line)))))
+       nconc (parse-set-line line))))
+
+(defun parse-set-line (line)
+  "Parses a lin of set declarations."
+  (loop
+     for eol = line then (subseq eol (1+ comma-index))
+     for comma-index = (position #\, eol)
+     for open-parenthesis-index = (position #\( eol)
+     for close-parenthesis-index = (position #\) eol)
+     while (> (length eol) 0)
+
+     if (or (null comma-index)
+            (< comma-index open-parenthesis-index))
+     collect (parse-set (string-nth-column eol 1))
+     else
+     collect (parse-set (subseq eol 0 (1+ close-parenthesis-index)))
+     and do (setq comma-index (position #\, eol :start close-parenthesis-index))
+
+     when (null comma-index)
+     do (setq comma-index (1- (length eol)))))
 
 (defun parse-set (decl)
-  "Parses a single set declaration"
-  (let ((decl (split-sequence #\( (subseq decl 0 (find #\Space decl)))))
+  "Parses a single set declaration."
+  (let ((decl (split-sequence #\( decl)))
     (assert (<= (length decl) 2))
     (destructuring-bind  (&optional min-size max-size)
         (mapcar
@@ -48,7 +67,7 @@ set-name[([min-size,]max-size)] [comment]"
                   (curry #'string-trim '(#\Space)))
          (split-sequence #\,
                          (let ((bounds (second decl)))
-                           (subseq bounds 0 (find #\) bounds)))
+                           (subseq bounds 0 (position #\) bounds)))
                          :remove-empty-subseqs t))
       (when (null max-size)
         (shiftf max-size min-size 1))
@@ -181,7 +200,7 @@ Advanced stop criteria may be defined using the DEF-STOP-CRITERION macro."
 
          when (begins-with "---- VAR " line :test #'string=)
          do (parse-result-point-variables stream point line)
-         (loop-finish))
+           (loop-finish))
       (make-result-point initial-point solver
                          solver-status solver-iteration solver-time
                          objective-value point))))

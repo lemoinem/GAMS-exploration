@@ -119,12 +119,12 @@ Logs any error GAMS returns and propagates it."
   (let ((solver-status (case exit-code
                          (7 11)
                          (t 13))))
-    (values (make-result-point initial-point solvers solver-status) t)))
+    (values (make-result-point initial-point (format nil "~{~A~^ ~}" solvers) solver-status) t)))
 
 (defun signal-GAMS-error (exit-code GAMS-model initial-point solvers)
   "Simplest GAMS error handler: signal.
 Signals any error GAMS returns."
-  (error "GAMS exited with error code ~A (GAMS ~A ~{~A~^ ~})"
+  (error "gams exited with error code ~A (gams ~A ~{~A~^ ~})"
          exit-code GAMS-model solvers))
 
 (defun advanced-GAMS-error-handler (exit-code GAMS-model initial-point solvers)
