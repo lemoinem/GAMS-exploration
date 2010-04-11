@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:gams-dynamic-sets)
+(cl:in-package #:GAMS-dynamic-sets)
 
 (defstruct (stop-criterion
              (:constructor %make-stop-criterion
@@ -63,7 +63,7 @@ The result is undefined any of them is modified within the evaluation of the cri
                         (when (dynamic-set-max-size set)
                           (> (dynamic-set-max-size set)
                              (gethash set set-point)))))
-  "List of stop criteria not attached to a specific set.")
+  "List of stop criteria attached to every set.")
 
 (defmacro sets-max-size (&rest args)
   "Assignes various max sizes to dynamic sets.
@@ -87,7 +87,7 @@ args is a alist of pairs set-name/size."  `(setf
                               &body body
                               &aux (args (list set-var set-point-var result-points-var)))
   "Defines (creates and attaches) a new stop criterion.
-/!\\ c.f. MAKE-STOP-CRITERION/!\\.
+/!\\ c.f. MAKE-STOP-CRITERION /!\\.
 decl may be either:
 - the name of the criterion
 - corresponding to the following destructuring lambda list:

@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:gams-dynamic-sets)
+(cl:in-package #:GAMS-dynamic-sets)
 
 (deftype derivation ()
   "Allowed kinds of derivation strategy to generate a new initial point.
@@ -51,18 +51,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (defstruct (strategy
              (:constructor %make-strategy
-                           (file-name derivation set stage)))
+                           (file-name derivation stage)))
   "Strategy to generate a new initial point.
 Some restrictions apply to the various slots:
 - file-name must not be empty;
-- if the derivation strategy is :derived or :family, set must not be null;
-- if the derivation strategy is :derived or :family, stage must not be :empty-set or :always;
-- if the derivation strategy is :family, stage must not be :first-element or :non-empty-set
+- if the derivation strategy is :derived or :family, stage must not be either :empty-set nor :always;
+- if the derivation strategy is :family, stage must not be either :first-element nor :non-empty-set
   (i.e. must be :additional-element)."
   (file-name  nil :read-only t :type string)
   (derivation nil :read-only t :type derivation)
-  (stage      nil :read-only t :type stage)
-  (set        nil :read-only t :type (or null dynamic-set)))
+  (stage      nil :read-only t :type stage))
 
 (defun strategy-name (instance)
   "Returns the name of a strategy."
@@ -70,8 +68,10 @@ Some restrictions apply to the various slots:
   (the (values string &optional) ;; http://www.sbcl.org/manual/#Implementation-Limitations
     (string-replace (strategy-file-name instance) "/" ":")))
 
-(defun make-strategy (file-name derivation &optional set-name stage)
-  "Creates a new strategy to generate initial points.
+(defun make-strategy (file-name derivation &optional stage)
+  "Create a new strategy to generate initial points.
+/!\\ The strategy is created but not attached to any set. /!\\
+/!\\ Use CREATE-STRATEGY unless you know what you're doing. /!\\
 Stage defaults value:
 - if derivation is :independent, stage defaults to :always;
 - if derivation is :derived,     stage defaults to :non-empty-set;
@@ -84,18 +84,31 @@ Stage defaults value:
                    (ecase derivation
                      (:independent :always)
                      (:derived     :non-empty-set)
-                     (:family      :additional-element))))
-        (set   (find-set-from-name set-name)))
-    (when (and (not (null set-name))
-               (null set))
-      (error "set-name must be an existing set name or null"))
-    (when (member derivation '(:derived :family))
-      (when (null set)
-        (error "'derived' and 'family' derivations require a set name"))
-      (when (member stage '(:empty-set :always))
-        (error "'empty set' and 'always' stages are not allowed for 'derived' or 'family' derivations")))
+                     (:family      :additional-element)))))
+    (when (and
+           (member derivation '(:derived :family))
+           (member stage      '(:empty-set :always)))
+      (error "'empty set' and 'always' stages are not allowed for 'derived' or 'family' derivations"))
     (when (and
            (eql derivation :family)
            (member stage '(:first-element :non-empty-set)))
       (error "'first element' and 'non-empty set' stages are not allowed for 'family' derivation"))
-    (%make-strategy file-name derivation set stage)))
+    (%make-strategy file-name derivation stage)))
+
+(defparameter *independent-strategies* ()
+  "List of strategies attached to every set.")
+
+(defun create-strategy (file-name derivation &optional set stage)
+  "Creates and register a new strategy to generate initial points.
+/!\\ c.f. MAKE-STRATEGY /!\\.
+If the derivation strategy is :derived or :family, set must not be null."
+  (declare (type (or null dynamic-set) set))
+  (let ((strategy (make-strategy file-name derivation stage)))
+    (when (and
+           (null set)
+           (member (strategy-derivation strategy) '(:derived :family)))
+      (error "'derived' and 'family' derivations require a set."))
+    (if (null set)
+        (push strategy *independent-strategies*)
+        (push strategy (dynamic-set-strategies set))))
+  (values))

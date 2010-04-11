@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:gams-dynamic-sets)
+(cl:in-package #:GAMS-dynamic-sets)
 
 (defparameter *set-point-loader* ()
   "File containing the GAMS representation of the current set-point")
@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                              (list name)))))
              set-point)))
 
-(defun write-gams-point (point &optional (stream *standard-output*))
+(defun write-GAMS-point (point &optional (stream *standard-output*))
   "Writes the GAMS point using the GAMS syntax."
   (declare (type point point))
   (maphash (lambda (key val)
@@ -80,7 +80,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         (with-open-file (stream file :direction :output :if-does-not-exist :create)
           (format stream "* ~A~%" history)
           (unless (eql strategy-derivation :independent)
-            (write-gams-point stream)
+            (write-GAMS-point stream)
             (princ #\Newline))
           (format stream "$batinclude ~A" (strategy-file-name strategy))
           (unless (eql strategy-derivation :independent)
@@ -98,33 +98,63 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (with-open-file (stream *initial-point-loader*
                           :direction :output
                           :if-exists :supersede)
-    (format stream "$include ~A" (initial-point-file-name initial-point)))
+    (format stream "$include ~A~%" (initial-point-file-name initial-point)))
   (values))
 
 (defparameter *variables* ()
   "List of GAMS model variables.")
 
-(defstruct (gams-variable
-             (:constructor make-gams-variable (name dimension)))
+(defstruct (GAMS-variable
+             (:constructor make-GAMS-variable (name dimension)))
   (name      nil :read-only t :type string)
   (dimension nil :read-only t :type integer))
 
-(defun solve-gams-model (gams-model initial-point &optional solvers)
+(defparameter *GAMS-errors* ()
+  "List of errors GAMS returned.")
+
+(defun store-GAMS-error (exit-code GAMS-model initial-point solvers)
+  "Simplest GAMS error handler: store.
+Logs any error GAMS returns and propagates it."
+  (push (list exit-code GAMS-model initial-point solvers) *GAMS-errors*)
+  (let ((solver-status (case exit-code
+                         (7 11)
+                         (t 13))))
+    (values (make-result-point initial-point solvers solver-status) t)))
+
+(defun signal-GAMS-error (exit-code GAMS-model initial-point solvers)
+  "Simplest GAMS error handler: signal.
+Signals any error GAMS returns."
+  (error "GAMS exited with error code ~A (GAMS ~A ~{~A~^ ~})"
+         exit-code GAMS-model solvers))
+
+(defun advanced-GAMS-error-handler (exit-code GAMS-model initial-point solvers)
+  "GAMS error handler.
+If GAMS returns a n°3 error (execution error, often due to arithmetic error)
+             or a n°7 error (licensing error),
+  stores it;
+If GAMS returns any other error,
+  signals it."
+  (if (member exit-code '(3 7))
+      (store-GAMS-error exit-code GAMS-model initial-point solvers) 
+      (signal-GAMS-error exit-code GAMS-model initial-point solvers)))
+
+(defun solve-GAMS-model (GAMS-model initial-point &optional solvers (GAMS-error-handler #'signal-GAMS-error))
   "Runs GAMS on the model and returns the result point.
 The initial-point must have been load and is used only to generate result point.
 /!\\ This function is currently implemented only for SBCL /!\\"
   (declare (type initial-point initial-point))
   #+sbcl (let ((exit-code (sb-ext:process-exit-code
-                           (sb-ext:run-program "gams" (list* gams-model solvers)
+                           (sb-ext:run-program "gams" (list* GAMS-model solvers)
                                                :search t
                                                :output *standard-output*))))
            (unless (zerop exit-code)
-             (error "gams exited with error code ~A (gams ~A ~{~A~^ ~})"
-                    exit-code gams-model solvers)))
+             (multiple-value-bind (return-value return-p)
+                 (funcall GAMS-error-handler exit-code GAMS-model initial-point solvers)
+               (when return-p (return-from solve-GAMS-model return-value)))))
   #-sbcl (error "This script currently only supports SBCL")
   (parse-result-point (concatenate 'string
-                                   (subseq gams-model 0
-                                           (search ".gms" gams-model
+                                   (subseq GAMS-model 0
+                                           (search ".gms" GAMS-model
                                                    :from-end t))
                                    ".lst")
                       initial-point))

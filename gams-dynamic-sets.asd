@@ -28,34 +28,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:in-package #:cl)
 
-(defpackage #:gams-dynamic-sets-system
+(defpackage #:GAMS-dynamic-sets-system
   (:use #:cl #:asdf))
 
-(in-package #:gams-dynamic-sets-system)
+(in-package #:GAMS-dynamic-sets-system)
 
-(defsystem :gams-dynamic-sets
+(defsystem :GAMS-dynamic-sets
   :licence "3-clause BSD Licence"
   :description "GAMS driver to manipulate dynamic sets and provide customized stratgies to create new initial points."
   :depends-on ("alexandria" "cl-fad" "split-sequence" "parse-number" "script-utility")
   :serial t
   :components
-  (
-   (:module "base"
+  ((:module "base"
             :serial t
             :components
             ((:file "package")
-             (:file "utilities")))
-   (:module "backend.0"
-            :serial t
+             (:file "utilities")
+             (:file "sets")))
+   (:module "backend"
             :components
-            ((:file "sets")
-             (:file "strategies")))
-   (:module "backend.1"
-            :components
-            ((:file "points")
-             (:file "stop-criteria")))
+            ((:file "stop-criteria")
+             (:file "strategies")
+             (:file "points" :depends-on ("strategies"))))
    (:module "frontend"
             :components
-            ((:file "helpers")
-             (:file "gams")
-             (:file "parsers")))))
+            ((:file "GAMS")
+             (:file "helpers")))
+   (:file "parsers")))

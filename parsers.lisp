@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:gams-dynamic-sets)
+(cl:in-package #:GAMS-dynamic-sets)
 
 (defun parse-sets (file)
   "Parses the dynamic sets file.
@@ -42,7 +42,7 @@ set-name[([min-size,]max-size)] [comment]"
   "Parses a single set declaration"
   (let ((decl (split-sequence #\( (subseq decl 0 (find #\Space decl)))))
     (assert (<= (length decl) 2))
-    (destructuring-bind  (min-size &optional max-size)
+    (destructuring-bind  (&optional min-size max-size)
         (mapcar
          (compose #'parse-integer
                   (curry #'string-trim '(#\Space)))
@@ -51,13 +51,13 @@ set-name[([min-size,]max-size)] [comment]"
                            (subseq bounds 0 (find #\) bounds)))
                          :remove-empty-subseqs t))
       (when (null max-size)
-        (rotatef min-size max-size))
+        (shiftf max-size min-size 1))
       (make-dynamic-set (string-trim '(#\Space) (first decl)) ; set name
                         max-size min-size))))
 
 (defun parse-variable-list (file)
   "Parses the variable list file.
-The file is a gams file used within the model.
+The file is a GAMS file used within the model.
 Empty lines, lines whose first character is not a space
   and lines consiting only of a ';' and some spaces are ignored.
 Other lines must contain only one variable declaration per line.
@@ -77,7 +77,7 @@ variable-name[(indice-set[, ...])] [comment]"
                     (and (= cols 1)
                          (string= ";" (first columns)))))
        collect (let ((decl (split-sequence #\( (first columns))))
-                 (make-gams-variable (first decl)
+                 (make-GAMS-variable (first decl)
                                      (length
                                       (split-sequence #\, (second decl)
                                                       :remove-empty-subseqs t)))))))
@@ -120,13 +120,14 @@ A strategy specification is as follow:
               (split-sequence #\: line))
     (when (null line)
       (shiftf line comment ""))
-    (destructuring-bind (file-name &optional (derivation "i") set stage)
+    (destructuring-bind (file-name &optional (derivation "i") set-name stage)
         (mapcar (curry #'string-trim '(#\Space))
                 (split-sequence #\, line))
       (let ((derivation (ecase (coerce (elt derivation 0) 'character)
                           (#\i :independent)
                           (#\d :derived)
                           (#\f :family)))
+            (set     (find-set-from-name set-name))
             (stage   (ecase (and stage (coerce (elt stage 0) 'character))
                        ((nil) nil)
                        (#\e       :empty-set)
@@ -134,7 +135,10 @@ A strategy specification is as follow:
                        ((#\n #\a) :additional-element)
                        ((#\* #\A) :always)
                        ((#\+ #\N) :non-empty-set))))
-        (make-strategy file-name derivation set stage)))))
+        (when (and (not (null set-name))
+                   (null set))
+          (error "set-name must be an existing set name or null"))
+        (create-strategy file-name derivation set stage)))))
 
 (defun parse-stop-criteria (file)
   "Parses stop criteria list.
@@ -209,7 +213,7 @@ Advanced stop criteria may be defined using the DEF-STOP-CRITERION macro."
      with line = first-line
      for variable-name = (string-nth-column line 3)
      for variable = (find variable-name *variables*
-                          :key #'gams-variable-name
+                          :key #'GAMS-variable-name
                           :test #'string-equal)
 
      do (assert (begins-with "---- VAR " line :test #'string=) ()
@@ -217,7 +221,7 @@ Advanced stop criteria may be defined using the DEF-STOP-CRITERION macro."
 
      if variable
      do (setq line
-              (if (zerop (gams-variable-dimension variable))
+              (if (zerop (GAMS-variable-dimension variable))
                   (parse-result-scalar-variable stream point line)
                   (parse-result-vector-variable stream point line)))
      else

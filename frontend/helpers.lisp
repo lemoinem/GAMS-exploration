@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:gams-dynamic-sets)
+(cl:in-package #:GAMS-dynamic-sets)
 
 (defun generate-set-element (set nth)
   "Generate the nth GAMS set element name."
@@ -86,33 +86,28 @@ The set-points are generated using a depth-first exploration."
               (setf (gethash current-set new-set-point) 0)
               (generate-next-set-point new-set-point result-points)))))))
 
-(defun strategies-stage-filtering (strategies &optional (current-stage :empty-set) current-set)
-  "Filters initial point generation strategies depending on the current stage and the current set.
-If a set is specified, only the strategies allowed to be applied to the current-set are returned.
-Only the strategies allowed to be applied during the current-stage are returned."
+(defun yield-applicable-strategies (&optional (current-stage :empty-set) current-set)
+  "Returns applicable initial point strategies depending on the current stage and set."
   (declare (type concret-stage current-stage)
            (type (or null dynamic-set) current-set))
-  (let ((stage-values     (list* :always current-stage
-                                 (unless (eql current-stage :empty-set)
-                                    '(:non-empty-set))))
-        (strategies-set (if (null current-set)
-                            strategies
-                            (remove-if (compose #'not (curry #'string-equal
-                                                             (dynamic-set-name current-set)))
-                                       strategies
-                                       :key #'strategy-set))))
+  (let ((stage-values   (list* :always current-stage
+                               (unless (eql current-stage :empty-set)
+                                 '(:non-empty-set))))
+        (strategies-set (append *independent-strategies*
+                                (if (null current-set)
+                                    (mapcan #'dynamic-set-strategies *sets*)
+                                    (dynamic-set-strategies current-set)))))
     (remove-if (compose #'not (rcurry #'member stage-values))
                strategies-set
                :key #'strategy-stage)))
 
-(defun generate-initial-points (strategies set-point
-                                &optional (current-stage :empty-set)
+(defun generate-initial-points (set-point &optional (current-stage :empty-set)
                                 current-set previous-result-points)
   "Apply the usable strategies to generate various initial points at this set-point."
   (declare (type concret-stage current-stage)
            (type set-point set-point)
            (type (or null dynamic-set) current-set))
-  (let ((strategies      (strategies-stage-filtering strategies current-stage current-set))
+  (let ((strategies      (yield-applicable-strategies current-stage current-set))
         (old-set-indices (let ((current-set-size (or (gethash current-set set-point)
                                                      0)))
                            (when (>= current-set-size 2)
@@ -167,6 +162,6 @@ The history is a slash-separated list of
   (format stream "iteration count: ~A~%" (result-point-solver-iteration point))
   (format stream "time: ~A~%" (result-point-solver-time point))
   (format stream "objective value: ~A~%~%" (result-point-objective-value point))
-  (write-gams-point (result-point-point point) stream)
+  (write-GAMS-point (result-point-point point) stream)
   (princ #\Newline)
   (values))

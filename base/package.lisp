@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:defpackage #:gams-dynamic-sets
+(cl:defpackage #:GAMS-dynamic-sets
   (:use #:cl #:alexandria #:split-sequence #:parse-number)
   (:shadowing-import-from #:fad #:list-directory)
   (:export
@@ -39,7 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:*sets*
    #:dynamic-set #:make-dynamic-set #:copy-dynamic-set #:dynamic-set-p
    #:dynamic-set-name #:dynamic-set-max-size #:dynamic-set-min-size
-   #:dynamic-set-stop-criteria
+   #:dynamic-set-stop-criteria #:dynamic-set-strategies
 
    #:set-name-descriptor #:make-set-name
    #:find-set-from-name
@@ -52,6 +52,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:strategy #:make-stratey #:copy-strategy #:strategy-p
    #:strategy-file-name #:strategy-derivation #:strategy-stage #:strategy-set
    #:strategy-name
+
+   #:*independent-strategies* #:create-strategy
 
    ;;; POINTS
    #:initial-point #:make-initial-point #:copy-initial-point #:initial-point-p
@@ -84,8 +86,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:set-point->result-coordinate #:set-point->result-known-dimensions
    #:generate-next-set-point
 
-   #:strategies-stage-filtering
-
    #:generate-initial-points
    #:initial-point-history
 
@@ -93,14 +93,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    
    ;;; GAMS
    #:*set-point-loader* #:load-set-point
-   #:write-gams-point #:write-initial-point
+
+   #:write-GAMS-point
+
+   #:write-initial-point
    #:*initial-point-loader* #:load-initial-point
 
    #:*variables*
-   #:gams-variable #:make-gams-variable #:copy-gams-variable #:gams-variable-p
-   #:gams-variable-name #:gams-variable-dimension
+   #:GAMS-variable #:make-GAMS-variable #:copy-GAMS-variable #:GAMS-variable-p
+   #:GAMS-variable-name #:GAMS-variable-dimension
 
-   #:solve-gams-model
+   #:solve-GAMS-model
+   #:*GAMS-errors* #:store-GAMS-error
+   #:signal-GAMS-error #:advanced-GAMS-error-handler
 
    ;;; PARSERS
    #:parse-sets

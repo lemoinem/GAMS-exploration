@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:gams-dynamic-sets)
+(cl:in-package #:GAMS-dynamic-sets)
 
 (defparameter *sets* ()
   "List of dynamics sets.")
@@ -37,7 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (name          nil                     :read-only t :type string)
   (max-size      nil                                  :type (or null integer))
   (min-size       1                                   :type integer)
-  (stop-criteria nil                                  :type list))
+  (stop-criteria nil                                  :type list)
+  (strategies    nil                                  :type list))
 
 (deftype set-name-descriptor ()
   "Dynamic set name descriptor."

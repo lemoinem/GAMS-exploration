@@ -29,16 +29,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:in-package #:cl)
 
+(declaim (optimize debug))
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'alexandria)
-  (require 'gams-dynamic-sets)
+  (require 'GAMS-dynamic-sets)
   (require 'script-utility))
 
-(defpackage #:gams-dynamic-sets-script
+(defpackage #:GAMS-dynamic-sets-script
   (:use #:cl #:alexandria
-        #:script-utility #:gams-dynamic-sets))
+        #:script-utility #:GAMS-dynamic-sets))
 
-(in-package #:gams-dynamic-sets-script)
+(in-package #:GAMS-dynamic-sets-script)
 
 
                                         ; main
@@ -50,18 +52,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                          *set-point-loader* *initial-point-loader*
                          solvers-list)
         *arguments*
-      (let ((*sets*                   (parse-sets  sets-list))
-            (stop-criteria            (parse-stop-criteria stop-criteria-list))
-            (strategies               (parse-strategies    strategies-list))
-            (*variables*              (parse-variable-list variable-list))
-            (solvers                  (parse-solver-list   solvers-list)))
-        (declare (ignore stop-criteria))
+      (let* ((*sets*                   (parse-sets          sets-list))
+             (stop-criteria            (parse-stop-criteria stop-criteria-list))
+             (strategies               (parse-strategies    strategies-list))
+             (*variables*              (parse-variable-list variable-list))
+             (solvers                  (parse-solver-list   solvers-list)))
+        (declare (ignore stop-criteria strategies))
         (let* ((min-result) (max-result))
           (loop named main-loop
-             for feasible-point-found-p = t then nil
+             with feasible-point-found-p = t
 
              for (set-point current-set) = (list (make-set-point))
              then (let ((*sets* (if (or feasible-point-found-p
+                                        (null current-set)
                                         (< (gethash current-set set-point)
                                            (dynamic-set-min-size current-set)))
                                     *sets*
@@ -83,23 +86,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                                    ((null current-set) :empty-set)
                                                    ((= (gethash current-set set-point) 1) :first-element)
                                                    (t :additional-element))))
-                                      (generate-initial-points strategies set-point
-                                                               stage current-set result-points)))
+                                      (generate-initial-points set-point stage
+                                                               current-set result-points)))
 
              while set-point
 
              do (load-set-point set-point)
                (map 'nil (rcurry #'write-initial-point initial-points-directory) initial-points)
+               (setq feasible-point-found-p nil)
                (flet ((add-result (result)
                         (push result (apply #'aref result-points result-point-coordinates))
-                        (when (or (null min-result)
-                                  (< (result-point-objective-value result)
-                                     (result-point-objective-value min-result)))
-                          (setq min-result result))
-                        (when (or (null max-result)
-                                  (> (result-point-objective-value result)
-                                     (result-point-objective-value max-result)))
-                          (setq max-result result))
+                        (unless (erroneous-point-p result)
+                          (when (or (null min-result)
+                                    (< (result-point-objective-value result)
+                                       (result-point-objective-value min-result)))
+                            (setq min-result result))
+                          (when (or (null max-result)
+                                    (> (result-point-objective-value result)
+                                       (result-point-objective-value max-result)))
+                            (setq max-result result)))
                         (when (feasible-point-p result)
                           (setq feasible-point-found-p t))))
                  (map 'nil
@@ -107,13 +112,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                         (declare (type initial-point initial-point))
                         (load-initial-point initial-point)
                         (map 'nil
-                             (compose #'add-result
-                                      (curry #'solve-gams-model model-name initial-point))
+                             (lambda (solver)
+                               (add-result
+                                (solve-GAMS-model model-name initial-point solver
+                                                  #'advanced-GAMS-error-handler)))
                              solvers))
                       initial-points))
 
              finally (return-from main-loop result-points))
+          (format t "**** MINIMAL SOLUTION ****~%")
           (print-result-point min-result)
-          (print-result-point max-result))))
+          (format t "**** MAXIMAL SOLUTION ****~%")
+          (print-result-point max-result)
+          (when *GAMS-errors*
+            (format t "**** ERROR POINTS ****~%~%")
+            (map 'nil (lambda (error-point)
+                        (destructuring-bind (exit-code GAMS-model initial-point solvers) error-point
+                          (format t "exit-code: ~A~%model: ~A~%solvers: ~A~%initial point: ~A {{~A}}~%~%"
+                                  exit-code GAMS-model solvers
+                                  (initial-point-file-name initial-point)
+                                  (initial-point-history   initial-point))))
+                 *GAMS-errors*)))))
     (unless (and nil (null *arguments*))
-      (error "This script requires 9 arguments: initial-points-directory dynamic-sets stop-criteria strategies gams-model.gms variables.inc set-point.inc initializer.inc solvers")))
+      (error "This script requires 9 arguments: initial-points-directory dynamic-sets stop-criteria strategies GAMS-model.gms variables.inc set-point.inc initializer.inc solvers~%~A" *arguments*)))
