@@ -105,7 +105,7 @@ variable-name[(indice-set[, ...])] [comment]"
   "Parses the strategy file.
 The file should contains a strategy specification per line.
 A strategy specification is as follow:
-[comment :] strategy-file-name derivation [set [stage]]
+[comment :] strategy-file-name, derivation [, [set] [, stage]]
 
 = the strategy-file-name file must be written in GAMS,
  Its content will be include to complete the initialization of the initial-point,
@@ -143,21 +143,23 @@ A strategy specification is as follow:
     (destructuring-bind (file-name &optional (derivation "i") set-name stage)
         (mapcar (curry #'string-trim '(#\Space))
                 (split-sequence #\, line))
-      (let ((derivation (ecase (coerce (elt derivation 0) 'character)
+      (let ((derivation (ecase (elt derivation 0)
                           (#\i :independent)
                           (#\d :derived)
                           (#\f :family)))
             (set     (find-set-from-name set-name))
-            (stage   (ecase (and stage (coerce (elt stage 0) 'character))
-                       ((nil) nil)
-                       (#\e       :empty-set)
-                       ((#\1 #\f) :first-element)
-                       ((#\n #\a) :additional-element)
-                       ((#\* #\A) :always)
-                       ((#\+ #\N) :non-empty-set))))
-        (when (and (not (null set-name))
+            (stage   (when stage
+                       (ecase (elt stage 0)
+                         (#\e       :empty-set)
+                         ((#\1 #\f) :first-element)
+                         ((#\n #\a) :additional-element)
+                         ((#\* #\A) :always)
+                         ((#\+ #\N) :non-empty-set)))))
+        (when (and (not (or
+                         (null set-name)
+                         (zerop (length set-name))))
                    (null set))
-          (error "set-name must be an existing set name or null"))
+          (error "set-name, if present, must be an existing set name."))
         (create-strategy file-name derivation set stage)))))
 
 (defun parse-stop-criteria (file)
