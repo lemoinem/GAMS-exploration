@@ -133,8 +133,9 @@ A strategy specification is as follow:
        do (parse-strategy line)))
   (values))
 
-(defun parse-strategy (line)
-  "Parses a single strategy description."
+(defun parse-strategy (line &optional return-strategy)
+  "Parses a single strategy description.
+If return-strategy is non-nil, returns the strategy instead of registering it."
   (destructuring-bind (comment &optional line)
       (mapcar (curry #'string-trim '(#\Space))
               (split-sequence #\: line))
@@ -160,7 +161,9 @@ A strategy specification is as follow:
                          (zerop (length set-name))))
                    (null set))
           (error "set-name, if present, must be an existing set name."))
-        (create-strategy file-name derivation set stage)))))
+        (if return-strategy
+            (values (make-strategy file-name derivation stage) set)
+            (create-strategy file-name derivation set stage))))))
 
 (defun parse-stop-criteria (file)
   "Parses stop criteria list.

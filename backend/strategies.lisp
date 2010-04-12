@@ -112,3 +112,11 @@ If the derivation strategy is :derived or :family, set must not be null."
         (push strategy *independent-strategies*)
         (push strategy (dynamic-set-strategies set))))
   (values))
+
+(defun clear-strategies ()
+  "Removes all loaded strategies."
+  (setq *independent-strategies* nil)
+  (map 'nil (lambda (set)
+              (setf (dynamic-set-strategies set) nil))
+       *sets*)
+  (values))

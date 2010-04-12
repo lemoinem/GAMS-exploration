@@ -28,13 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:in-package #:GAMS-dynamic-sets)
 
-(defstruct (stop-criterion
-             (:constructor %make-stop-criterion
-                           (name function)))
-  "Criterion used to stop the growing of a set.
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defstruct (stop-criterion
+               (:constructor %make-stop-criterion
+                             (name function)))
+    "Criterion used to stop the growing of a set.
 function must a callable object receiving 3 arguments."
-  (name        nil :read-only t :type symbol)
-  (function    nil :read-only t :type function))
+    (name        nil :read-only t :type symbol)
+    (function    nil :read-only t :type function)))
 
 (defmacro make-stop-criterion (name
                                (&optional (set-var           (gensym "set/"))
@@ -57,13 +58,26 @@ The result is undefined any of them is modified within the evaluation of the cri
                            (declare (ignorable ,@args))
                            ,@body)))
 
+(defconstant +check-max-set-size-stop-criterion+
+  (if (boundp '+check-max-set-size-stop-criterion+)
+      (symbol-value '+check-max-set-size-stop-criterion+)
+      (make-stop-criterion check-max-set-size (set set-point)
+                           (when (dynamic-set-max-size set)
+                             (> (dynamic-set-max-size set)
+                                (gethash set set-point))))))
+
 (defparameter *independent-stop-criteria*
-  (list
-   (make-stop-criterion check-max-set-size (set set-point)
-                        (when (dynamic-set-max-size set)
-                          (> (dynamic-set-max-size set)
-                             (gethash set set-point)))))
+  (list +check-max-set-size-stop-criterion+)
   "List of stop criteria attached to every set.")
+
+(defun clear-stop-criteria ()
+  "Removes all loaded stop criteria."
+  (setq *independent-stop-criteria*
+        (list +check-max-set-size-stop-criterion+))
+  (map 'nil (lambda (set)
+              (setf (dynamic-set-stop-criteria set) nil))
+       *sets*)
+  (values))
 
 (defmacro sets-max-size (&rest args)
   "Assignes various max sizes to dynamic sets.
