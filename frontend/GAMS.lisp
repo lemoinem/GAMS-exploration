@@ -93,7 +93,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (declare (type initial-point instance))
   (with-accessors ((file-name initial-point-file-name)) instance
     (when file-name
-      (let ((base-name (subseq file-name (1+ (position #\/ file-name :from-end t))))) 
+      (let ((base-name (subseq file-name (1+ (position #\/ file-name :from-end t)))))
         (parse-integer (subseq base-name 0 (position #\. base-name)))))))
 
 (defparameter *initial-point-loader* ""
@@ -142,7 +142,7 @@ If GAMS returns a n°3 error (execution error, often due to arithmetic error)
 If GAMS returns any other error,
   signals it."
   (if (member exit-code '(3 7))
-      (store-GAMS-error exit-code GAMS-model initial-point solvers) 
+      (store-GAMS-error exit-code GAMS-model initial-point solvers)
       (signal-GAMS-error exit-code GAMS-model initial-point solvers)))
 
 (defun solve-GAMS-model (GAMS-model initial-point &optional solvers (GAMS-error-handler #'signal-GAMS-error))
