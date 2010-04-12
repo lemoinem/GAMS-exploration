@@ -55,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   "Returns the set having this name."
   (declare (type (or null set-name-descriptor) name))
   (when name
-    (the dynamic-set
+    (the (or null dynamic-set)
       (find (make-set-name name) *sets* :key #'dynamic-set-name :test #'string-equal))))
 
 (defun set-point-p (set-point)
