@@ -64,7 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
          (number          (length (list-directory directory)))
          (file            (concatenate 'string
                                        directory (write-to-string number) "."
-                                       (subseq history (1+ (search "/" history :from-end t)))
+                                       (subseq history (1+ (position #\/ history :from-end t)))
                                        ".init"))
          (current-set     (initial-point-set initial-point))
          (new-set-element (when current-set
@@ -88,6 +88,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
             (when (eql strategy-derivation :family)
               (format stream " ~A" new-set-element)))
           (princ #\Newline))))))
+
+(defun initial-point-file-number (instance)
+  (declare (type initial-point instance))
+  (with-accessors ((file-name initial-point-file-name)) instance
+    (when file-name
+      (let ((base-name (subseq file-name (1+ (position #\/ file-name :from-end t))))) 
+        (parse-integer (subseq base-name 0 (position #\. base-name)))))))
 
 (defparameter *initial-point-loader* ""
   "File containing the GAMS representation of the current initial-point.")
@@ -143,18 +150,24 @@ If GAMS returns any other error,
 The initial-point must have been load and is used only to generate result point.
 /!\\ This function is currently implemented only for SBCL /!\\"
   (declare (type initial-point initial-point))
-  #+sbcl (let ((exit-code (sb-ext:process-exit-code
-                           (sb-ext:run-program "gams" (list* GAMS-model solvers)
-                                               :search t
-                                               :output *standard-output*))))
-           (unless (zerop exit-code)
-             (multiple-value-bind (return-value return-p)
-                 (funcall GAMS-error-handler exit-code GAMS-model initial-point solvers)
-               (when return-p (return-from solve-GAMS-model return-value)))))
-  #-sbcl (error "This script currently only supports SBCL")
-  (parse-result-point (concatenate 'string
-                                   (subseq GAMS-model 0
-                                           (search ".gms" GAMS-model
-                                                   :from-end t))
-                                   ".lst")
-                      initial-point))
+  (let ((result-file (concatenate 'string
+                                  (subseq GAMS-model 0
+                                          (search ".gms" GAMS-model
+                                                  :from-end t))
+                                  ".lst")))
+    (unwind-protect
+         (progn
+           #+sbcl (let ((exit-code (sb-ext:process-exit-code
+                                    (sb-ext:run-program "gams" (list* GAMS-model solvers)
+                                                        :search t
+                                                        :output *standard-output*))))
+                    (unless (zerop exit-code)
+                      (multiple-value-bind (return-value return-p)
+                          (funcall GAMS-error-handler exit-code GAMS-model initial-point solvers)
+                        (when return-p (return-from solve-GAMS-model return-value)))))
+           #-sbcl (error "This script currently only supports SBCL")
+           (parse-result-point result-file initial-point))
+      (when (file-exists-p result-file)
+        (copy-file result-file (format nil "~A.~:[default~;~:*~{~A~^,~}~].~A"
+                                       (initial-point-file-number initial-point)
+                                       solvers result-file))))))

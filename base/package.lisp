@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:defpackage #:GAMS-dynamic-sets
   (:use #:cl #:alexandria #:split-sequence #:parse-number)
-  (:shadowing-import-from #:fad #:list-directory)
+  (:shadowing-import-from #:fad #:list-directory #:copy-file #:file-exists-p)
   (:export
 
    ;;; UTILITIES
@@ -96,7 +96,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    #:write-GAMS-point
 
-   #:write-initial-point
+   #:write-initial-point #:initial-point-file-number
    #:*initial-point-loader* #:load-initial-point
 
    #:*variables*
