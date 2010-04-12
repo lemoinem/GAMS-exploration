@@ -191,10 +191,11 @@ Advanced stop criteria may be defined using the DEF-STOP-CRITERION macro."
          when (begins-with "**** MODEL STATUS " line :test #'string=)
          do (setq solver-status (parse-integer
                                  (string-nth-column line 4)))
+           (when (%erroneous-point-p solver-status)
+             (loop-finish))
 
          when (begins-with "**** OBJECTIVE VALUE " line :test #'string=)
-         do (setq objective-value (parse-real-number
-                                   (string-nth-column line 4)))
+         do (setq objective-value (parse-real-number (string-nth-column line 4)))
 
          when (begins-with " ITERATION COUNT, LIMIT " line :test #'string=)
          do (setq solver-iteration (parse-integer
