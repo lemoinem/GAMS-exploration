@@ -114,7 +114,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                              (lambda (solver)
                                (add-result
                                 (solve-GAMS-model model-name initial-point solver
-                                                  #'advanced-GAMS-error-handler)))
+                                                  #'store-GAMS-error)))
                              solvers))
                       initial-points))
 
