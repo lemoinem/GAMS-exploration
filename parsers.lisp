@@ -130,7 +130,8 @@ A strategy specification is as follow:
   (with-open-file (strategies file)
     (loop
        for line = (read-line strategies nil nil) while line
-       collect (parse-strategy line))))
+       do (parse-strategy line)))
+  (values))
 
 (defun parse-strategy (line)
   "Parses a single strategy description."
