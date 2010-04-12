@@ -158,7 +158,7 @@ The initial-point must have been load and is used only to generate result point.
     (unwind-protect
          (progn
            #+sbcl (let ((exit-code (sb-ext:process-exit-code
-                                    (sb-ext:run-program "gams" (list* GAMS-model solvers)
+                                    (sb-ext:run-program "gams" (list* GAMS-model "lo=3" solvers)
                                                         :search t
                                                         :output *standard-output*))))
                     (unless (zerop exit-code)
