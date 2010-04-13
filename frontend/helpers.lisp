@@ -112,7 +112,7 @@ The set-points are generated using a depth-first exploration."
                                                      0)))
                            (when (>= current-set-size 2)
                              (iota (1- current-set-size) :start 1))))
-        (previous-result-points (remove (compose #'not #'feasible-point-p) previous-result-points)))
+        (previous-result-points (remove-if (compose #'not #'feasible-point-p) previous-result-points)))
     (loop
        for strategy in strategies
        for %make-initial-point = (curry #'make-initial-point strategy set-point)

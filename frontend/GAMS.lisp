@@ -50,7 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   "Writes the GAMS point using the GAMS syntax."
   (declare (type point point))
   (maphash (lambda (key val)
-             (format stream "~A.l~@[(~{'~A'~^,~})~] = ~A~%"
+             (format stream "~A.l~@[(~{'~A'~^,~})~] = ~A;~%"
                      (point-key-name key) (point-key-indices key)
                      val))
            point))
@@ -80,7 +80,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
         (with-open-file (stream file :direction :output :if-does-not-exist :create)
           (format stream "* ~A~%" history)
           (unless (eql strategy-derivation :independent)
-            (write-GAMS-point stream)
+            (write-GAMS-point (result-point-point
+                               (initial-point-result-point initial-point))
+                              stream)
             (princ #\Newline))
           (format stream "$batinclude ~A" (strategy-file-name strategy))
           (unless (eql strategy-derivation :independent)
