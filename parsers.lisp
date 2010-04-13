@@ -118,10 +118,11 @@ Variable descriptor: variable-name[(indice-set[, ...])] [comment]"
 (defun parse-strategies (file)
   "Parses the strategies GAMS file.
 Strategy descriptor: strategy-file-name(derivation [, [set] [, stage]]) [comment]
+The values of derivation and stage may be enclosed in single quotes.
 
-= the strategy-file-name file must be written in GAMS,
- Its content will be include to complete the initialization of the initial-point,
- as if include using:
+= the strategy-file-name file must be written in GAMS, Its content will be
+ included in the model to complete the initialization of the initial-point, as
+ if included using:
     $batinclude strategy-file-name [new-set-element [old-set-element]]
  new-set-element will be present only if the derivation is :derived or :family.
  old-set-element will be present only if the derivation is :family.

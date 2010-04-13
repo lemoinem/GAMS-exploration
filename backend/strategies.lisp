@@ -55,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   "Strategy to generate a new initial point.
 Some restrictions apply to the various slots:
 - file-name must not be empty;
-- if the derivation strategy is :derived or :family, stage must not be either :empty-set nor :always;
+- if the derivation strategy is :derived or :family, stage must be neither :empty-set nor :always;
 - if the derivation strategy is :family, stage must not be either :first-element nor :non-empty-set
   (i.e. must be :additional-element)."
   (file-name  nil :read-only t :type string)
