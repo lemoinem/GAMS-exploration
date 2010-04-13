@@ -43,8 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (in-package #:GAMS-dynamic-sets-script)
 
 
-                                        ; main
-
+;; TODO replace positional arguments by keys arguments (--args)
 (if (= (length *arguments*) 9)
     (destructuring-bind (initial-points-directory
                          sets-list stop-criteria-list strategies-list
