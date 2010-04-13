@@ -39,7 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   :depends-on ("alexandria" "cl-fad" "cl-ppcre" "split-sequence" "parse-number" "script-utility")
   :serial t
   :components
-  ((:module "base"
+  ((:module "docs"
+            :components
+            ((:static-file "gams-dynamic-sets.tex")
+             (:static-file "gams-dynamic-sets.pdf")))
+   (:module "base"
             :serial t
             :components
             ((:file "package")
