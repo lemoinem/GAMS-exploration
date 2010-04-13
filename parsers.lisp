@@ -63,21 +63,21 @@ The result is a list of cons, whose car and cdr are respectively the list (key .
 
 (defun parse-GAMS-line (line)
   "Parses a line of GAMS declarations."
-  (break)
   (loop
      for found-declaration-p = nil
 
      collect
        (register-groups-bind ((#'length length) key nil args comment eol)
-           ("(^ *([a-zA-Z][a-zA-Z0-9]*) *(\\(([^)]+)\\))? *([^(,]*)(,|$))" line :sharedp t)
+           ("(^ *([^( ]+) *(\\(([^)]+)\\))? *([^(,]*)(,|$))" line :sharedp t)
          (setq found-declaration-p t
                line (subseq line
                             (if (zerop (length eol))
                                 length
                                 (1+ length))))
          (cons (list* (string-trim '(#\Space) key)
-                      (mapcar (curry #'string-trim '(#\Space))
-                              (split-sequence #\, args)))
+                      (when args
+                        (mapcar (curry #'string-trim '(#\Space))
+                                (split-sequence #\, args))))
                (string-trim '(#\Space) comment)))
 
      until (or (null line)
@@ -91,9 +91,11 @@ The result is a list of cons, whose car and cdr are respectively the list (key .
 Set descriptor: set-name[([min-size,]max-size)]"
   (do-GAMS-declarations ((set-name &optional min-size max-size) . comment) file
     (declare (ignore comment))
-    (when (null max-size)
-      (shiftf max-size min-size 1))
-    (make-dynamic-set set-name max-size min-size)))
+    (let ((min-size (when min-size (parse-integer min-size)))
+          (max-size (when max-size (parse-integer max-size))))
+     (when (null max-size)
+       (shiftf max-size min-size 1))
+     (make-dynamic-set set-name max-size min-size))))
 
 (defun parse-variable-list (file)
   "Parses the variable list GAMS file.
@@ -111,7 +113,7 @@ Variable descriptor: variable-name[(indice-set[, ...])] [comment]"
                     (not (alexandria:starts-with #\Space line))
                     (and (= cols 1)
                          (string= ";" (first columns)))))))
-    (make-GAMS-variable name indices)))
+    (make-GAMS-variable name (length indices))))
 
 (defun parse-strategies (file)
   "Parses the strategies GAMS file.
@@ -137,15 +139,15 @@ Strategy descriptor: strategy-file-name(derivation [, [set] [, stage]]) [comment
   - n or a[dditional-element];
   - * or A[lways];
   - + or N[on-empty-set]."
-  (do-GAMS-declarations ((file-name derivation &optional set-name stage) . comment) file
+  (do-GAMS-declarations ((file-name &optional (derivation "i") set-name stage) . comment) file
     (declare (ignore comment))
-    (let ((derivation (ecase (elt derivation 0)
+    (let ((derivation (ecase (elt (string-trim '(#\') derivation) 0)
                         (#\i :independent)
                         (#\d :derived)
                         (#\f :family)))
           (set     (find-set-from-name set-name))
           (stage   (when stage
-                     (ecase (elt stage 0)
+                     (ecase (elt (string-trim '(#\') stage) 0)
                        (#\e       :empty-set)
                        ((#\1 #\f) :first-element)
                        ((#\n #\a) :additional-element)

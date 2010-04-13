@@ -51,9 +51,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                          :remove-empty-subseqs t
                          :count nth))))
 
-(defun seq-contains-only-p (seq items)
-  (declare (sequence seq)
-           (list items))
+(defun seq-contains-only-p (items seq)
+  (declare (list items)
+           (sequence seq))
   "Returns whether seq contains only elements of items "
   (every (rcurry #'member items) seq))
 
