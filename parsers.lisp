@@ -87,10 +87,8 @@ The result is a list of cons, whose car and cdr are respectively the list (key .
      do (error "The line contains no declaration.")))
 
 (defun parse-sets (file)
-  "Parses the dynamic sets file.
-The file should contains a comma/new-line separated list of set descriptors.
-A set descriptor is as follow:
-set-name[([min-size,]max-size)] [comment]"
+  "Parses the dynamic sets GAMS file.
+Set descriptor: set-name[([min-size,]max-size)]"
   (do-GAMS-declarations ((set-name &optional min-size max-size) . comment) file
     (declare (ignore comment))
     (when (null max-size)
@@ -98,13 +96,10 @@ set-name[([min-size,]max-size)] [comment]"
     (make-dynamic-set set-name max-size min-size)))
 
 (defun parse-variable-list (file)
-  "Parses the variable list file.
-The file is a GAMS file used within the model.
+  "Parses the variable list GAMS file.
 Empty lines, lines whose first character is not a space
-  and lines consiting only of a ';' and some spaces are ignored.
-Other lines must contain only one variable declaration per line.
-A variable declaration is as follows:
-variable-name[(indice-set[, ...])] [comment]"
+  and lines consiting only of spaces and a single ';' are ignored.
+Variable descriptor: variable-name[(indice-set[, ...])] [comment]"
   (do-GAMS-declarations ((name . indices) . comment)
       (file (lambda (line)
               (let* ((columns (split-sequence:split-sequence
@@ -119,10 +114,8 @@ variable-name[(indice-set[, ...])] [comment]"
     (make-GAMS-variable name indices)))
 
 (defun parse-strategies (file)
-  "Parses the strategy file.
-The file should contains a strategy specification per line.
-A strategy specification is as follow:
-strategy-file-name(derivation [, [set] [, stage]]) [comment]
+  "Parses the strategies GAMS file.
+Strategy descriptor: strategy-file-name(derivation [, [set] [, stage]]) [comment]
 
 = the strategy-file-name file must be written in GAMS,
  Its content will be include to complete the initialization of the initial-point,
