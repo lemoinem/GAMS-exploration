@@ -28,12 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:defpackage #:GAMS-dynamic-sets
   (:use #:cl #:alexandria #:split-sequence #:parse-number)
+  (:import-from #:ppcre #:register-groups-bind)
   (:shadowing-import-from #:fad #:list-directory #:copy-file #:file-exists-p)
   (:export
 
    ;;; UTILITIES
    #:string-replace #:string-nth-column
-   #:begins-with
+   #:seq-contains-only-p #:begins-with
 
    ;;; SETS
    #:*sets*

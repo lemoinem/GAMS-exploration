@@ -44,12 +44,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (defun string-nth-column (str nth)
   "Returns the nth column of a space-separated list."
   (declare (string str)
-           (integer nth))
+           (type (integer 1) nth))
   (the string
     (nth (1- nth)
          (split-sequence #\Space str
                          :remove-empty-subseqs t
                          :count nth))))
+
+(defun seq-contains-only-p (seq items)
+  (declare (sequence seq)
+           (list items))
+  "Returns whether seq contains only elements of items "
+  (every (rcurry #'member items) seq))
 
 (defun begins-with (start sequence &key (test #'eql))
   "Returns wether start is a subsequence of sequence starting at index 0."

@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (defsystem :GAMS-dynamic-sets
   :licence "3-clause BSD Licence"
   :description "GAMS driver to manipulate dynamic sets and provide customized stratgies to create new initial points."
-  :depends-on ("alexandria" "cl-fad" "split-sequence" "parse-number" "script-utility")
+  :depends-on ("alexandria" "cl-fad" "cl-ppcre" "split-sequence" "parse-number" "script-utility")
   :serial t
   :components
   ((:module "base"
