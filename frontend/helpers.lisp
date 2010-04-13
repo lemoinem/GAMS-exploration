@@ -138,7 +138,7 @@ The history is a slash-separated list of
                      (with-accessors ((current-set  initial-point-set)
                                       (result-point initial-point-result-point))
                          instance
-                       (append (initial-point-history (result-point-initial-point result-point))
+                       (append (list (initial-point-history (result-point-initial-point result-point)))
                                (when #1=(result-point-solver result-point)
                                      (list "," #1#))
                                local-begining
