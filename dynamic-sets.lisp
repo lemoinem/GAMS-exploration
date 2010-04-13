@@ -62,6 +62,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
           (loop named main-loop
              with feasible-point-found-p = t
 
+             for previous-result-points = nil
+             then (apply #'aref result-points result-point-coordinates)
+
              for (set-point current-set) = (list (make-set-point))
              then (let ((*sets* (if (or feasible-point-found-p
                                         (null current-set)
@@ -87,7 +90,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                                    ((= (gethash current-set set-point) 1) :first-element)
                                                    (t :additional-element))))
                                       (generate-initial-points set-point stage
-                                                               current-set result-points)))
+                                                               current-set previous-result-points)))
 
              while set-point
 
