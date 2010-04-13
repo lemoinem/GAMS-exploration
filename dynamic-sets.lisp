@@ -76,9 +76,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                      (generate-next-set-point set-point result-points)))
 
              for result-points = (make-array (set-point->result-known-dimensions set-point)
-                                             :element-type 'list :adjustable t)
+                                             :element-type 'list :initial-element nil
+                                             :adjustable t)
              then (if set-point
-                      (adjust-array result-points (set-point->result-known-dimensions set-point))
+                      (adjust-array result-points (set-point->result-known-dimensions set-point)
+                                    :initial-element nil)
                       result-points)
 
              for result-point-coordinates = (when set-point
