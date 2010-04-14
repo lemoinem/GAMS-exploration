@@ -44,6 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ;; TODO replace positional arguments by keys arguments (--args)
+;; TODO add an argument to store lst files
 (if (= (length *arguments*) 9)
     (destructuring-bind (initial-points-directory
                          sets-list stop-criteria-list strategies-list
