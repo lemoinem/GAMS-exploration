@@ -137,5 +137,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                   (initial-point-file-name initial-point)
                                   (initial-point-history   initial-point))))
                  *GAMS-errors*)))))
-    (unless (and nil (null *arguments*))
+    (unless (null *arguments*)
       (error "This script requires 9 arguments: initial-points-directory dynamic-sets stop-criteria strategies GAMS-model.gms variables.inc set-point.inc initializer.inc solvers~%~A" *arguments*)))
