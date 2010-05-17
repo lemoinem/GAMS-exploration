@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:GAMS-dynamic-sets)
+(cl:in-package #:GAMS-exploration)
 
 (defparameter *set-point-loader* ()
   "File containing the GAMS representation of the current set-point")

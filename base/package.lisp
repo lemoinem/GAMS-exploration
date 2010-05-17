@@ -26,17 +26,17 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:defpackage #:GAMS-dynamic-sets
+(cl:defpackage #:GAMS-exploration
   (:use #:cl #:alexandria #:split-sequence #:parse-number)
   (:import-from #:ppcre #:register-groups-bind)
   (:shadowing-import-from #:fad #:list-directory #:copy-file #:file-exists-p)
   (:export
 
-   ;;; UTILITIES
+;;; UTILITIES
    #:string-replace #:string-nth-column
    #:seq-contains-only-p #:begins-with
 
-   ;;; SETS
+;;; SETS
    #:*sets*
    #:dynamic-set #:make-dynamic-set #:copy-dynamic-set #:dynamic-set-p
    #:dynamic-set-name #:dynamic-set-max-size #:dynamic-set-min-size
@@ -47,7 +47,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    #:set-point #:make-set-point #:set-point-p
 
-   ;;; STRATEGIES
+;;; STRATEGIES
    #:derivation #:concret-stage #:abstract-stage #:stage
 
    #:strategy #:make-stratey #:copy-strategy #:strategy-p
@@ -56,7 +56,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    #:*independent-strategies* #:create-strategy
 
-   ;;; POINTS
+;;; POINTS
    #:initial-point #:make-initial-point #:copy-initial-point #:initial-point-p
    #:initial-point-strategy #:initial-point-set-point #:initial-point-result-point
    #:initial-point-set-index #:initial-point-file-name #:initial-point-set
@@ -73,14 +73,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    #:erroneous-point-p #:feasible-point-p
 
-   ;;; STOP-CRITERIA
+;;; STOP-CRITERIA
    #:stop-criterion #:make-stop-criterion #:copy-stop-criterion #:stop-criterion-p
    #:stop-criterion-name #:stop-criterion-function
 
    #:*independent-stop-criteria*
    #:sets-max-size #:sets-min-size #:def-stop-criterion
 
-   ;;; HELPERS
+;;; HELPERS
    #:generate-set-element
 
    #:set-point->string
@@ -92,7 +92,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    #:print-result-point
    
-   ;;; GAMS
+;;; GAMS
    #:*set-point-loader* #:load-set-point
 
    #:write-GAMS-point
@@ -108,7 +108,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:*GAMS-errors* #:store-GAMS-error
    #:signal-GAMS-error #:advanced-GAMS-error-handler
 
-   ;;; PARSERS
+;;; PARSERS
    #:parse-sets
    #:parse-variable-list
    #:parse-strategies

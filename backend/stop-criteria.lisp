@@ -26,7 +26,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 |#
 
-(cl:in-package #:GAMS-dynamic-sets)
+(cl:in-package #:GAMS-exploration)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defstruct (stop-criterion

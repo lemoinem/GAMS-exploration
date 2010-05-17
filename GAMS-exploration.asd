@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:in-package #:cl)
 
-(defpackage #:GAMS-dynamic-sets-system
+(defpackage #:GAMS-exploration-system
   (:use #:cl #:asdf))
 
-(in-package #:GAMS-dynamic-sets-system)
+(in-package #:GAMS-exploration-system)
 
-(defsystem :GAMS-dynamic-sets
+(defsystem :GAMS-exploration
   :licence "3-clause BSD Licence"
   :description "GAMS driver to manipulate dynamic sets and provide customized stratgies to create new initial points."
   :depends-on ("alexandria" "cl-fad" "cl-ppcre" "split-sequence" "parse-number" "script-utility")
@@ -41,8 +41,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   :components
   ((:module "docs"
             :components
-            ((:static-file "gams-dynamic-sets.tex")
-             (:static-file "gams-dynamic-sets.pdf")))
+            ((:static-file "gams-exploration.tex")
+             (:static-file "gams-exploration.pdf")))
    (:module "base"
             :serial t
             :components

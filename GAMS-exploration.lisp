@@ -33,14 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'alexandria)
-  (require 'GAMS-dynamic-sets)
+  (require 'GAMS-exploration)
   (require 'script-utility))
 
-(defpackage #:GAMS-dynamic-sets-script
+(defpackage #:GAMS-exploration-script
   (:use #:cl #:alexandria
-        #:script-utility #:GAMS-dynamic-sets))
+        #:script-utility #:GAMS-exploration))
 
-(in-package #:GAMS-dynamic-sets-script)
+(in-package #:GAMS-exploration-script)
 
 
 ;; TODO replace positional arguments by keys arguments (--args)
@@ -138,4 +138,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                   (initial-point-history   initial-point))))
                  *GAMS-errors*)))))
     (unless (null *arguments*)
-      (error "This script requires 9 arguments: initial-points-directory dynamic-sets stop-criteria strategies GAMS-model.gms variables.inc set-point.inc initializer.inc solvers~%~A" *arguments*)))
+      (error "This script requires 9 arguments: initial-points-directory exploration stop-criteria strategies GAMS-model.gms variables.inc set-point.inc initializer.inc solvers~%~A" *arguments*)))

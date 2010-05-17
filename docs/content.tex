@@ -6,8 +6,8 @@ are not well supported. The goal of this script and library is to provide such
 facilities.
 
 This documention describes the use of the shell script
-\texttt{dynamic-sets.lisp}. The library documentation is provided directly in
-the source code.
+\texttt{GAMS-exploration.lisp}. The library documentation is provided directly
+in the source code.
 
 It is important to note that this script currently support only the SBCL
 implementation of common-lisp, more about this restriction in the Restriction
@@ -52,7 +52,7 @@ syntax of ordinary GAMS model files.
 
 The syntax of the shell script is the following:\\
 \begin{tt}
-  dynamic-sets.lisp initial-points-directory dynamic-sets stop-criteria
+  GAMS-exploration.lisp initial-points-directory dynamic-sets stop-criteria
   strategies GAMS-model.gms variables.inc set-point.inc initializer.inc solvers
 \end{tt}
 
