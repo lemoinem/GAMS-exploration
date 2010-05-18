@@ -147,16 +147,21 @@ If GAMS returns any other error,
       (store-GAMS-error exit-code GAMS-model initial-point solvers)
       (signal-GAMS-error exit-code GAMS-model initial-point solvers)))
 
+(defparameter *lst-directory* nil
+  "Directory in which lst files are stored.")
+
 (defun solve-GAMS-model (GAMS-model initial-point &optional solvers (GAMS-error-handler #'signal-GAMS-error))
   "Runs GAMS on the model and returns the result point.
 The initial-point must have been load and is used only to generate result point.
 /!\\ This function is currently implemented only for SBCL /!\\"
   (declare (type initial-point initial-point))
-  (let ((result-file (concatenate 'string
-                                  (subseq GAMS-model 0
-                                          (search ".gms" GAMS-model
-                                                  :from-end t))
-                                  ".lst")))
+  (let ((result-file (when *lst-directory*
+                       (concatenate 'string
+                                    *lst-directory*
+                                    (subseq GAMS-model 0
+                                            (search ".gms" GAMS-model
+                                                    :from-end t))
+                                    ".lst"))))
     (unwind-protect
          (progn
            #+sbcl (let ((exit-code (sb-ext:process-exit-code
@@ -170,6 +175,9 @@ The initial-point must have been load and is used only to generate result point.
            #-sbcl (error "This script currently only supports SBCL")
            (parse-result-point result-file initial-point))
       (when (file-exists-p result-file)
-        (copy-file result-file (format nil "~A.~:[default~;~:*~{~A~^,~}~].~A"
-                                       (initial-point-file-number initial-point)
-                                       solvers result-file))))))
+        (let ((file (format nil "~A.~:[default~;~:*~{~A~^,~}~].~A"
+                            (initial-point-file-number initial-point)
+                            solvers result-file)))
+          (if result-file
+              (copy-file result-file file)
+              (delete-file file)))))))

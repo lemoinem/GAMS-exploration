@@ -104,6 +104,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:GAMS-variable #:make-GAMS-variable #:copy-GAMS-variable #:GAMS-variable-p
    #:GAMS-variable-name #:GAMS-variable-dimension
 
+   #:*lst-directory*
    #:solve-GAMS-model
    #:*GAMS-errors* #:store-GAMS-error
    #:signal-GAMS-error #:advanced-GAMS-error-handler
