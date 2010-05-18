@@ -88,14 +88,17 @@ The result is a list of cons, whose car and cdr are respectively the list (key .
 
 (defun parse-sets (file)
   "Parses the dynamic sets GAMS file.
-Set descriptor: set-name[([min-size,]max-size)]"
-  (do-GAMS-declarations ((set-name &optional min-size max-size) . comment) file
+Set descriptor: set-name[([start-size,[min-size,]]max-size)]"
+  (do-GAMS-declarations ((set-name &rest args) . comment) file
     (declare (ignore comment))
-    (let ((min-size (when min-size (parse-integer min-size)))
-          (max-size (when max-size (parse-integer max-size))))
-     (when (null max-size)
-       (shiftf max-size min-size 1))
-     (make-dynamic-set set-name max-size min-size))))
+    (destructuring-bind (&optional first second third)
+        (mapcar #'parse-integer args)
+      (apply #'make-dynamic-set set-name
+             (ecase (length args)
+               (0 nil)
+               (1 (list first))
+               (2 (list second first))
+               (3 (list third first second)))))))
 
 (defun parse-variable-list (file)
   "Parses the variable list GAMS file.

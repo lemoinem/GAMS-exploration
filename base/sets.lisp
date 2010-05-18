@@ -33,10 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (defstruct (dynamic-set
              (:constructor make-dynamic-set
-                           (name &optional max-size (min-size 1))))
+                           (name &optional max-size (start-size 0) (min-size 1))))
   (name          nil                     :read-only t :type string)
   (max-size      nil                                  :type (or null integer))
   (min-size       1                                   :type integer)
+  (start-size     0                      :read-only t :type integer)
   (stop-criteria nil                                  :type list)
   (strategies    nil                                  :type list))
 
@@ -60,11 +61,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (defun set-point-p (set-point)
   "Returns whether set-point is a instance of set-point.
-A set-point is an hash-table having an unsigned-byte value assigned to each set.
+A set-point is an hash-table having an unsigned-byte value assigned to each set
+ and if this value is greater than or equal to the start-size of this set .
 This definition does not prevent the hash-table from containing any other data."
   (declare (hash-table set-point))
-  (every (compose (rcurry #'typep 'unsigned-byte)
-                  (rcurry #'gethash set-point))
+  (every (lambda (set)
+           (let ((value (gethash set set-point)))
+             (and (typep value 'unsigned-byte)
+                  (>= value (dynamic-set-start-size set)))))
          *sets*))
 
 (deftype set-point ()
@@ -80,6 +84,6 @@ This definition does not prevent the hash-table from containing any other data."
                                        (member (dynamic-set-name set) args
                                                :key #'make-set-name
                                                :test #'string-equal))
-                                      0))))
+                                      (dynamic-set-start-size set)))))
          *sets*)
     (the set-point set-point)))

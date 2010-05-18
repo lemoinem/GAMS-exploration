@@ -40,7 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:*sets*
    #:dynamic-set #:make-dynamic-set #:copy-dynamic-set #:dynamic-set-p
    #:dynamic-set-name #:dynamic-set-max-size #:dynamic-set-min-size
-   #:dynamic-set-stop-criteria #:dynamic-set-strategies
+   #:dynamic-set-start-size #:dynamic-set-stop-criteria #:dynamic-set-strategies
 
    #:set-name-descriptor #:make-set-name
    #:find-set-from-name

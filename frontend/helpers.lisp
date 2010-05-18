@@ -83,7 +83,8 @@ The set-points are generated using a depth-first exploration."
                      (notany #'check-stop-criterion (dynamic-set-stop-criteria current-set))))
             (values new-set-point current-set)
             (let ((*sets* (rest *sets*)))
-              (setf (gethash current-set new-set-point) 0)
+              (setf (gethash current-set new-set-point)
+                    (dynamic-set-start-size current-set))
               (generate-next-set-point new-set-point result-points)))))))
 
 (defun yield-applicable-strategies (&optional (current-stage :empty-set) current-set)
