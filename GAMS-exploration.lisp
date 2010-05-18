@@ -45,13 +45,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;; TODO add an argument to store lst files
 (block nil
   (destructuring-bind (*lst-directory*
-                       min-file max-file
+                       min-file max-file errors-file
                        initial-points-directory
                        sets-list stop-criteria-list strategies-list
                        model-name variable-list
                        *set-point-loader* *initial-point-loader*
                        solvers-list)
       (let (args (mapcar #'get-argument '("--lsts" "--min" "--max"
+                                          "--errors"
                                           "--init-points" "--sets"
                                           "--stops" "--strategies"
                                           "--gms" "--variables"
@@ -90,6 +91,8 @@ Optional arguments:
 ~Tfile in which will be stored the minimal solution found so far
 --max
 ~Tfile in which will be stored the maximal solution found so far
+--errors
+~Tfile in which the list of GAMS errors will be stored
 Current args:~%~A" *arguments*)
           (return))
         args)
@@ -177,10 +180,15 @@ Current args:~%~A" *arguments*)
         (print-result-point max-result)
         (when *GAMS-errors*
           (format t "**** ERROR POINTS ****~%~%")
-          (map 'nil (lambda (error-point)
-                      (destructuring-bind (exit-code GAMS-model initial-point solvers) error-point
-                        (format t "exit-code: ~A~%model: ~A~%solvers: ~A~%initial point: ~A {{~A}}~%~%"
-                                exit-code GAMS-model solvers
-                                (initial-point-file-name initial-point)
-                                (initial-point-history   initial-point))))
-               *GAMS-errors*))))))
+          (let ((text (apply #'concatenate 'string
+                             (mapcar (lambda (error-point)
+                                       (destructuring-bind (exit-code GAMS-model initial-point solvers) error-point
+                                         (format nil "exit-code: ~A~%model: ~A~%solvers: ~A~%initial point: ~A {{~A}}~%~%"
+                                                 exit-code GAMS-model solvers
+                                                 (initial-point-file-name initial-point)
+                                                 (initial-point-history   initial-point))))
+                                     *GAMS-errors*))))
+            (format t "~A" text)
+            (when errors-file
+              (with-open-file (file errors-file :direction :output :if-exists :supersede)
+                (format file "~A" text)))))))))
