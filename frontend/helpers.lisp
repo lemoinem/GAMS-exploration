@@ -64,29 +64,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      collect (1+ (or (dynamic-set-max-size set)
                      (gethash set set-point)))))
 
-;; TODO (?) : replace depth-first by breadth-first
-(defun generate-next-set-point (previous-set-point result-points
-                                &aux (current-set (first *sets*)))
-  "Generates the next realisable set-point (or nil if no realisable set-point is available).
-The set-points are generated using a depth-first exploration."
-  (declare (type set-point previous-set-point)
-           (type (or null dynamic-set) current-set))
-  (when current-set
-    (let ((new-set-point (copy-hash-table previous-set-point)))
-      (incf (gethash current-set new-set-point))
-      (flet ((check-stop-criterion (stop-criterion)
-               (declare (type stop-criterion stop-criterion))
-               (funcall (stop-criterion-function stop-criterion)
-                        current-set new-set-point result-points)))
-        (if (or (< (gethash current-set new-set-point) (dynamic-set-min-size current-set))
-                (and (notany #'check-stop-criterion *independent-stop-criteria*)
-                     (notany #'check-stop-criterion (dynamic-set-stop-criteria current-set))))
-            (values new-set-point current-set)
-            (let ((*sets* (rest *sets*)))
-              (setf (gethash current-set new-set-point)
-                    (dynamic-set-start-size current-set))
-              (generate-next-set-point new-set-point result-points)))))))
-
 (defun yield-applicable-strategies (&optional (current-stage :empty-set) current-set)
   "Returns applicable initial point strategies depending on the current stage and set."
   (declare (type concret-stage current-stage)

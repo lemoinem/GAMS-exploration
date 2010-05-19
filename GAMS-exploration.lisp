@@ -34,15 +34,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'alexandria)
   (require 'GAMS-exploration)
-  (require 'script-utility))
+  (require 'script-utility)
+  (require 'priority-fifo))
 
 (defpackage #:GAMS-exploration-script
   (:use #:cl #:alexandria
-        #:script-utility #:GAMS-exploration))
+        #:script-utility #:priority-fifo
+        #:GAMS-exploration))
 
 (in-package #:GAMS-exploration-script)
 
-;; TODO add an argument to store lst files
 (block nil
   (destructuring-bind (*lst-directory*
                        min-file max-file errors-file
@@ -51,16 +52,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                        model-name variable-list
                        *set-point-loader* *initial-point-loader*
                        solvers-list)
-      (let (args (mapcar #'get-argument '("--lsts" "--min" "--max"
-                                          "--errors"
-                                          "--init-points" "--sets"
-                                          "--stops" "--strategies"
-                                          "--gms" "--variables"
-                                          "--current-sets"
-                                          "--current-point"
-                                          "--solvers")))
+      (let ((args (mapcar #'get-argument '("--lsts" "--min" "--max"
+                                           "--errors"
+                                           "--init-points" "--sets"
+                                           "--stops" "--strategies"
+                                           "--gms" "--variables"
+                                           "--current-sets"
+                                           "--current-point"
+                                           "--solvers"))))
         (when (or (some #'null (nthcdr 3 args))
-                  (get-argument "--help" :boolean-p))
+                  (get-argument "--help" :boolean-p t))
           (format *error-output*
                   "Mandatory arguments:
 --init-points
@@ -105,19 +106,9 @@ Current args:~%~A" *arguments*)
       (let* ((min-result) (max-result))
         (loop named main-loop
            with feasible-point-found-p = t
+           with todo = (make-priority-fifo (curry #'every #'<=) (make-set-point))
 
-           for previous-result-points = nil
-           then (apply #'aref result-points result-point-coordinates)
-
-           for (set-point current-set) = (list (make-set-point))
-           then (let ((*sets* (if (or feasible-point-found-p
-                                      (null current-set)
-                                      (< (gethash current-set set-point)
-                                         (dynamic-set-min-size current-set)))
-                                  *sets*
-                                  (remove current-set *sets*))))
-                  (multiple-value-list
-                   (generate-next-set-point set-point result-points)))
+           for set-point = (priority-fifo-pop todo)
 
            for result-points = (make-array (set-point->result-known-dimensions set-point)
                                            :element-type 'list :initial-element nil
@@ -131,12 +122,26 @@ Current args:~%~A" *arguments*)
                                             (set-point->result-coordinate set-point))
 
            for initial-points = (when set-point
-                                  (let ((stage (cond
-                                                 ((null current-set) :empty-set)
-                                                 ((= (gethash current-set set-point) 1) :first-element)
-                                                 (t :additional-element))))
-                                    (generate-initial-points set-point stage
-                                                             current-set previous-result-points)))
+                                  (loop
+                                     for set in *sets*
+
+                                     for old-set-point = (let ((p (copy-hash-table set-point)))
+                                                           (decf (gethash set p))
+                                                           p)
+
+                                     for previous-result-points =
+                                       (let ((coord (set-point->result-coordinate old-set-point)))
+                                         (unless (some #'minusp coord)
+                                           (apply #'aref result-points coord)))
+
+                                     append
+                                       (let ((stage (cond
+                                                      ((or (null set)
+                                                           (= (gethash set set-point) 0)) :empty-set)
+                                                      ((= (gethash set set-point) 1) :first-element)
+                                                      (t :additional-element))))
+                                         (generate-initial-points set-point stage
+                                                                  set previous-result-points))))
 
            while set-point
 
@@ -172,6 +177,17 @@ Current args:~%~A" *arguments*)
                                                 #'store-GAMS-error)))
                            solvers))
                     initial-points))
+             (priority-fifo-pushes todo
+                                   (loop
+                                      for set in *sets*
+
+                                      for new-set-point = (let ((p (copy-hash-table set-point)))
+                                                            (incf (gethash set p))
+                                                            p)
+                                      unless (>= (gethash set new-set-point)
+                                                 (dynamic-set-max-size set))
+                                      collect new-set-point))
+
 
            finally (return-from main-loop result-points))
         (format t "**** MINIMAL SOLUTION ****~%")
