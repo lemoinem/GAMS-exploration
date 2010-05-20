@@ -75,7 +75,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (declare (type strategy instance)
            (type dynamic-set set))
   (the (or null unsigned-byte)
-    (aref (gethash set (strategy-domain instance) #(0 0)) 1)))
+    (aref (gethash set (strategy-domain instance) #(nil nil)) 1)))
 
 (defun (setf strategy-set-max-size) (new-size instance set)
   "Modifies the maximum size required for the set so the strategy is applicable."
