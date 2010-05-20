@@ -36,31 +36,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   by using a previous result point."
   '(member :independent :derived :family))
 
-;; replace :empty-set by :first-evaluation
-(deftype concret-stage ()
-  "Allowed states of a dynamic-set set-point."
-  '(member :empty-set :first-element :additional-element))
-
-(deftype abstract-stage ()
-  "Wildcards for the state of a dynamic-set."
-  '(member :always :non-empty-set))
-
-(deftype stage ()
-  "Allowed restriction of use of a initial point generation strategy."
-  '(or concret-stage abstract-stage))
-
 (defstruct (strategy
              (:constructor %make-strategy
-                           (file-name derivation stage)))
-  "Strategy to generate a new initial point.
-Some restrictions apply to the various slots:
-- file-name must not be empty;
-- if the derivation strategy is :derived or :family, stage must be neither :empty-set nor :always;
-- if the derivation strategy is :family, stage must not be either :first-element nor :non-empty-set
-  (i.e. must be :additional-element)."
+                           (file-name derivation &optional step-set)))
+  "Strategy to generate a new initial point."
   (file-name  nil :read-only t :type string)
+  (step-set   nil :read-only t :type (or null dynamic-set))
   (derivation nil :read-only t :type derivation)
-  (stage      nil :read-only t :type stage))
+  (domain     (make-hash-table :test #'equalp :size (length *sets*))))
 
 (defun strategy-name (instance)
   "Returns the name of a strategy."
@@ -68,55 +51,71 @@ Some restrictions apply to the various slots:
   (the (values string &optional) ;; http://www.sbcl.org/manual/#Implementation-Limitations
     (string-replace (strategy-file-name instance) "/" ":")))
 
-(defun make-strategy (file-name derivation &optional stage)
+(defun strategy-set-min-size (instance set)
+  "Returns the minimum size required for the set so the strategy is applicable."
+  (declare (type strategy instance)
+           (type dynamic-set set))
+  (the (or null unsigned-byte)
+    (aref (gethash set (strategy-domain instance) #(nil)) 0)))
+
+(defun (setf strategy-set-min-size) (new-size instance set)
+  "Modifies the minimum size required for the set so the strategy is applicable."
+  (declare (type (or null unsigned-byte) new-size)
+           (type strategy instance)
+           (type dynamic-set set))
+  (multiple-value-bind (_ present)
+      (gethash set (strategy-domain instance))
+    (declare (ignore _))
+    (unless present
+      (setf (gethash set (strategy-domain instance)) #(nil nil))))
+  (setf (aref (gethash set (strategy-domain instance)) 0) new-size))
+
+(defun strategy-set-max-size (instance set)
+  "Returns the maximum size required for the set so the strategy is applicable."
+  (declare (type strategy instance)
+           (type dynamic-set set))
+  (the (or null unsigned-byte)
+    (aref (gethash set (strategy-domain instance) #(0 0)) 1)))
+
+(defun (setf strategy-set-max-size) (new-size instance set)
+  "Modifies the maximum size required for the set so the strategy is applicable."
+  (declare (type (or null unsigned-byte) new-size)
+           (type strategy instance)
+           (type dynamic-set set))
+  (multiple-value-bind (_ present)
+      (gethash set (strategy-domain instance))
+    (declare (ignore _))
+    (unless present
+      (setf (gethash set (strategy-domain instance)) #(nil nil))))
+  (setf (aref (gethash set (strategy-domain instance)) 1) new-size))
+
+(defun strategy-applicable-p (instance set-point)
+  "Returns whether the instance is applicable to this set-point."
+  (declare (type strategy instance)
+           (type set-point set-point))
+  (every (lambda (set)
+           (declare (type dynamic-set set))
+           (let ((min (if (or (eq (strategy-derivation instance) :independent)
+                              (not (equalp set (strategy-step-set instance))))
+                          (or (strategy-set-min-size instance set) 0)
+                          (max (or (strategy-set-min-size instance set) 1)
+                               (1+ (dynamic-set-start-size set))))))
+             (with-accessors ((max strategy-set-max-size)) instance
+               (and (>= (gethash set set-point) min)
+                    (not (null max))
+                    (<= (gethash set set-point) max)))))
+         *sets*))
+
+(defun make-strategy (file-name derivation &optional step-set)
   "Create a new strategy to generate initial points.
-/!\\ The strategy is created but not attached to any set. /!\\
-/!\\ Use CREATE-STRATEGY unless you know what you're doing. /!\\
-Stage defaults value:
-- if derivation is :independent, stage defaults to :always;
-- if derivation is :derived,     stage defaults to :non-empty-set;
-- if derivation is :family,      stage defaults to :additional-element"
+Step-set must be not null if the derivation strategy is :derived or :family.
+Step-set will be ignored if the derivation is :independent."
   (declare (type derivation derivation)
-           (type (or null stage) stage))
+           (type (or null dynamic-set) step-set))
   (when (zerop (length file-name))
     (error "file name must be non empty"))
-  (let ((stage (or stage
-                   (ecase derivation
-                     (:independent :always)
-                     (:derived     :non-empty-set)
-                     (:family      :additional-element)))))
-    (when (and
-           (member derivation '(:derived :family))
-           (member stage      '(:empty-set :always)))
-      (error "'empty set' and 'always' stages are not allowed for 'derived' or 'family' derivations"))
-    (when (and
-           (eql derivation :family)
-           (member stage '(:first-element :non-empty-set)))
-      (error "'first element' and 'non-empty set' stages are not allowed for 'family' derivation"))
-    (%make-strategy file-name derivation stage)))
+  (let ((step-set (when (member derivation '(:derived :family))
+                    (or step-set
+                        (error "Step-set must be not null if the derivation strategy is :derived or :family.")))))
+    (%make-strategy file-name derivation step-set)))
 
-(defparameter *independent-strategies* ()
-  "List of strategies attached to every set.")
-
-(defun create-strategy (file-name derivation &optional set stage)
-  "Creates and register a new strategy to generate initial points.
-/!\\ c.f. MAKE-STRATEGY /!\\.
-If the derivation strategy is :derived or :family, set must not be null."
-  (declare (type (or null dynamic-set) set))
-  (let ((strategy (make-strategy file-name derivation stage)))
-    (when (and
-           (null set)
-           (member (strategy-derivation strategy) '(:derived :family)))
-      (error "'derived' and 'family' derivations require a set."))
-    (if (null set)
-        (push strategy *independent-strategies*)
-        (push strategy (dynamic-set-strategies set))))
-  (values))
-
-(defun clear-strategies ()
-  "Removes all loaded strategies."
-  (setq *independent-strategies* nil)
-  (map 'nil (lambda (set)
-              (setf (dynamic-set-strategies set) nil))
-       *sets*)
-  (values))

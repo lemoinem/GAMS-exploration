@@ -102,7 +102,7 @@ Current args:~%~A" *arguments*)
            (strategies               (parse-strategies    strategies-list))
            (*variables*              (parse-variable-list variable-list))
            (solvers                  (parse-solver-list   solvers-list)))
-      (declare (ignore stop-criteria strategies))
+      (declare (ignore stop-criteria))
       (let* ((min-result) (max-result))
         (loop named main-loop
            with feasible-point-found-p = t
@@ -122,26 +122,7 @@ Current args:~%~A" *arguments*)
                                             (set-point->result-coordinate set-point))
 
            for initial-points = (when set-point
-                                  (loop
-                                     for set in *sets*
-
-                                     for old-set-point = (let ((p (copy-hash-table set-point)))
-                                                           (decf (gethash set p))
-                                                           p)
-
-                                     for previous-result-points =
-                                       (let ((coord (set-point->result-coordinate old-set-point)))
-                                         (unless (some #'minusp coord)
-                                           (apply #'aref result-points coord)))
-
-                                     append
-                                       (let ((stage (cond
-                                                      ((or (null set)
-                                                           (= (gethash set set-point) 0)) :empty-set)
-                                                      ((= (gethash set set-point) 1) :first-element)
-                                                      (t :additional-element))))
-                                         (generate-initial-points set-point stage
-                                                                  set previous-result-points))))
+                                  (generate-initial-points set-point strategies result-points))
 
            while set-point
 

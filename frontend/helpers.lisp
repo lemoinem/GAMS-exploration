@@ -64,39 +64,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      collect (1+ (or (dynamic-set-max-size set)
                      (gethash set set-point)))))
 
-(defun yield-applicable-strategies (&optional (current-stage :empty-set) current-set)
-  "Returns applicable initial point strategies depending on the current stage and set."
-  (declare (type concret-stage current-stage)
-           (type (or null dynamic-set) current-set))
-  (let ((stage-values   (list* :always current-stage
-                               (unless (eql current-stage :empty-set)
-                                 '(:non-empty-set))))
-        (strategies-set (append *independent-strategies*
-                                (if (null current-set)
-                                    (mapcan #'dynamic-set-strategies *sets*)
-                                    (dynamic-set-strategies current-set)))))
-    (remove-if (compose #'not (rcurry #'member stage-values))
-               strategies-set
-               :key #'strategy-stage)))
-
-(defun generate-initial-points (set-point &optional (current-stage :empty-set)
-                                current-set previous-result-points)
+(defun generate-initial-points (set-point strategies result-points)
   "Apply the usable strategies to generate various initial points at this set-point."
-  (declare (type concret-stage current-stage)
-           (type set-point set-point)
-           (type (or null dynamic-set) current-set))
-  (let ((strategies      (yield-applicable-strategies current-stage current-set))
-        (old-set-indices (let ((current-set-size (or (gethash current-set set-point)
-                                                     0)))
-                           (when (>= current-set-size 2)
-                             (iota (1- current-set-size) :start 1))))
-        (previous-result-points (remove-if (compose #'not #'feasible-point-p) previous-result-points)))
+  (declare (type set-point set-point))
+  (let ((strategies (remove-if (compose #'not
+                                        (rcurry #'strategy-applicable-p set-point))
+                               strategies)))
     (loop
        for strategy in strategies
+
+       for set = (strategy-step-set strategy)
        for %make-initial-point = (curry #'make-initial-point strategy set-point)
+
+       for previous-set-point = (let ((p (copy-hash-table set-point)))
+                                  (decf (gethash (strategy-step-set strategy) set-point))
+                                  p)
+
+       for previous-result-points = (remove-if (compose #'not #'feasible-point-p)
+                                               (aref (set-point->result-coordinate previous-set-point)
+                                                     result-points))
+
        when (eql (strategy-derivation strategy) :independent) collect (funcall %make-initial-point)
-       when (eql (strategy-derivation strategy) :derived)     append  (mapcar %make-initial-point previous-result-points)
-       when (eql (strategy-derivation strategy) :family)      append  (map-product %make-initial-point previous-result-points old-set-indices))))
+       when (eql (strategy-derivation strategy) :derived)     append  (mapcar %make-initial-point
+                                                                              previous-result-points)
+       when (eql (strategy-derivation strategy) :family)      append  (map-product
+                                                                       %make-initial-point
+                                                                       previous-result-points
+                                                                       (iota (gethash set
+                                                                                      previous-set-point)
+                                                                             :start 1)))))
 
 (defun initial-point-history (instance)
   "Returns this initial-point history.

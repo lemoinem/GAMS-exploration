@@ -38,8 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (max-size      nil                                  :type (or null integer))
   (min-size       1                                   :type integer)
   (start-size     0                      :read-only t :type integer)
-  (stop-criteria nil                                  :type list)
-  (strategies    nil                                  :type list))
+  (stop-criteria nil                                  :type list))
 
 (deftype set-name-descriptor ()
   "Dynamic set name descriptor."
