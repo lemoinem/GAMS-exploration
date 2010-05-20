@@ -78,7 +78,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
        for previous-set-point = (when set
                                   (let ((p (copy-hash-table set-point)))
-                                    (decf (gethash (strategy-step-set strategy) set-point))
+                                    (decf (gethash (strategy-step-set strategy) p))
                                     p))
 
        for previous-result-points = (when set
