@@ -41,7 +41,9 @@ function must a callable object receiving 3 arguments."
   (if (boundp '+check-max-set-size-stop-criterion+)
       (symbol-value '+check-max-set-size-stop-criterion+)
       (make-stop-criterion 'check-max-set-size
-                           (lambda (set-point)
+                           (lambda (set-point _)
+                             (declare (ignore _)
+                                      (type set-point set-point))
                              (some (lambda (set)
                                      (when (dynamic-set-max-size set)
                                        (> (dynamic-set-max-size set)
