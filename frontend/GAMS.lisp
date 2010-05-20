@@ -37,13 +37,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (with-open-file (stream *set-point-loader*
                           :direction :output
                           :if-exists :supersede)
+    (format stream "$phantom null~%")
     (maphash (lambda (set current-size)
                (let ((name (dynamic-set-name set)))
-                 (format stream "$phantom ~A~%Set ~:*~A /~{~A~^, ~}/;~%~%"
+                 (format stream "Set ~A /~{~A~^, ~}/;~%~%"
                          name
                          (or (mapcar (curry #'generate-set-element set)
                                      (iota current-size :start 1))
-                             (list name)))))
+                             '("null")))))
              set-point)))
 
 (defun write-GAMS-point (point &optional (stream *standard-output*))
