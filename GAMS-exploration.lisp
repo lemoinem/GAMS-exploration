@@ -60,7 +60,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                            "--current-sets"
                                            "--current-point"
                                            "--solvers"))))
-        (when (or (some #'null (nthcdr 3 args))
+        (when (or (some #'null (nthcdr 4 args))
                   (get-argument "--help" :boolean-p t))
           (format *error-output*
                   "Mandatory arguments:
