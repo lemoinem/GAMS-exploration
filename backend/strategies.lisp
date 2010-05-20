@@ -102,8 +102,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                                (1+ (dynamic-set-start-size set))))))
              (let ((max (strategy-set-max-size instance set)))
                (and (>= (gethash set set-point) min)
-                    (not (null max))
-                    (<= (gethash set set-point) max)))))
+                    (or (null max)
+                        (<= (gethash set set-point) max))))))
          *sets*))
 
 (defun make-strategy (file-name derivation &optional step-set)
