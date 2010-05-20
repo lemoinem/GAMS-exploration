@@ -159,16 +159,23 @@ Current args:~%~A" *arguments*)
                                                 #'store-GAMS-error)))
                            solvers))
                     initial-points))
-             (priority-fifo-pushes todo
-                                   (loop
-                                      for set in *sets*
+             (unless (and (not feasible-point-found-p)
+                          (notany (lambda (set)
+                                    (declare (type dynamic-set set))
+                                    (<= (gethash set set-point)
+                                        (dynamic-set-min-size set)))
+                                  *sets*))
+               (priority-fifo-pushes todo
+                                     (loop
+                                        for set in *sets*
 
-                                      for new-set-point = (let ((p (copy-hash-table set-point)))
-                                                            (incf (gethash set p))
-                                                            p)
-                                      unless (>= (gethash set new-set-point)
-                                                 (dynamic-set-max-size set))
-                                      collect new-set-point))
+                                        for new-set-point = (let ((p (copy-hash-table set-point)))
+                                                              (incf (gethash set p))
+                                                              p)
+                                        unless (and (dynamic-set-max-size set)
+                                                    (>= (gethash set new-set-point)
+                                                        (dynamic-set-max-size set)))
+                                        collect new-set-point)))
 
 
            finally (return-from main-loop result-points))
