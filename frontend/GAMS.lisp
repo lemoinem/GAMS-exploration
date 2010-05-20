@@ -156,13 +156,11 @@ If GAMS returns any other error,
 The initial-point must have been load and is used only to generate result point.
 /!\\ This function is currently implemented only for SBCL /!\\"
   (declare (type initial-point initial-point))
-  (let ((result-file (when *lst-directory*
-                       (concatenate 'string
-                                    *lst-directory*
-                                    (subseq GAMS-model 0
-                                            (search ".gms" GAMS-model
-                                                    :from-end t))
-                                    ".lst"))))
+  (let ((result-file (concatenate 'string
+                                  (subseq GAMS-model 0
+                                          (search ".gms" GAMS-model
+                                                  :from-end t))
+                                  ".lst")))
     (unwind-protect
          (progn
            #+sbcl (let ((exit-code (sb-ext:process-exit-code
@@ -175,8 +173,10 @@ The initial-point must have been load and is used only to generate result point.
                         (when return-p (return-from solve-GAMS-model return-value)))))
            #-sbcl (error "This script currently only supports SBCL")
            (parse-result-point result-file initial-point))
-      (when (and (not (null result-file)) (file-exists-p result-file))
-        (let ((file (format nil "~A.~:[default~;~:*~{~A~^,~}~].~A"
+      (when (and (not (null *lst-directory*))
+                 (file-exists-p result-file))
+        (let ((file (format nil "~A~A.~:[default~;~:*~{~A~^,~}~].~A"
+                            *lst-directory*
                             (initial-point-file-number initial-point)
                             solvers result-file)))
           (if result-file
