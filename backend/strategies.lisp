@@ -100,7 +100,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                           (or (strategy-set-min-size instance set) 0)
                           (max (or (strategy-set-min-size instance set) 1)
                                (1+ (dynamic-set-start-size set))))))
-             (with-accessors ((max strategy-set-max-size)) instance
+             (let ((max (strategy-set-max-size instance set)))
                (and (>= (gethash set set-point) min)
                     (not (null max))
                     (<= (gethash set set-point) max)))))
