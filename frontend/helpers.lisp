@@ -83,8 +83,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
        for previous-result-points = (when set
                                       (remove-if (compose #'not #'feasible-point-p)
-                                                 (aref (set-point->result-coordinate previous-set-point)
-                                                       result-points)))
+                                                 (apply #'aref result-points
+                                                        (set-point->result-coordinate previous-set-point))))
 
        when (eql (strategy-derivation strategy) :independent) collect (funcall %make-initial-point)
        when (eql (strategy-derivation strategy) :derived)     append  (mapcar %make-initial-point
