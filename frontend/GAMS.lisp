@@ -175,7 +175,7 @@ The initial-point must have been load and is used only to generate result point.
                         (when return-p (return-from solve-GAMS-model return-value)))))
            #-sbcl (error "This script currently only supports SBCL")
            (parse-result-point result-file initial-point))
-      (when (file-exists-p result-file)
+      (when (and (not (null result-file)) (file-exists-p result-file))
         (let ((file (format nil "~A.~:[default~;~:*~{~A~^,~}~].~A"
                             (initial-point-file-number initial-point)
                             solvers result-file)))
