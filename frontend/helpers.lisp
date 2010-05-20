@@ -76,13 +76,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
        for set = (strategy-step-set strategy)
        for %make-initial-point = (curry #'make-initial-point strategy set-point)
 
-       for previous-set-point = (let ((p (copy-hash-table set-point)))
-                                  (decf (gethash (strategy-step-set strategy) set-point))
-                                  p)
+       for previous-set-point = (when set
+                                  (let ((p (copy-hash-table set-point)))
+                                    (decf (gethash (strategy-step-set strategy) set-point))
+                                    p))
 
-       for previous-result-points = (remove-if (compose #'not #'feasible-point-p)
-                                               (aref (set-point->result-coordinate previous-set-point)
-                                                     result-points))
+       for previous-result-points = (when set
+                                      (remove-if (compose #'not #'feasible-point-p)
+                                                 (aref (set-point->result-coordinate previous-set-point)
+                                                       result-points)))
 
        when (eql (strategy-derivation strategy) :independent) collect (funcall %make-initial-point)
        when (eql (strategy-derivation strategy) :derived)     append  (mapcar %make-initial-point
