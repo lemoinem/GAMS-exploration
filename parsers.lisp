@@ -108,7 +108,7 @@ Variable descriptor: variable-name[(indice-set[, ...])] [comment]"
   (do-GAMS-declarations ((name . indices) . comment)
       (file (lambda (line)
               (let* ((columns (split-sequence:split-sequence
-                               #\Space line 
+                               #\Space line
                                :remove-empty-subseqs t
                                :count 2))
                      (cols (length columns)))
@@ -116,53 +116,94 @@ Variable descriptor: variable-name[(indice-set[, ...])] [comment]"
                     (not (alexandria:starts-with #\Space line))
                     (and (= cols 1)
                          (string= ";" (first columns)))))))
+    (declare (ignore comment))
     (make-GAMS-variable name (length indices))))
 
 (defun parse-strategies (file)
   "Parses the strategies GAMS file.
-Strategy descriptor: strategy-file-name(derivation [, [set] [, stage]]) [comment]
-The values of derivation and stage may be enclosed in single quotes.
+Strategy descriptor: strategy-file-name[(derivation [, set])] [comment]
+Strategy domain descriptor: strategy-file-name.[lo|up](set) = bound;
+The values of derivation may be enclosed in single quotes.
 
-= the strategy-file-name file must be written in GAMS, Its content will be
+= the strategy-file-name file must be written in GAMS, its content will be
  included in the model to complete the initialization of the initial-point, as
  if included using:
     $batinclude strategy-file-name [new-set-element [old-set-element]]
  new-set-element will be present only if the derivation is :derived or :family.
  old-set-element will be present only if the derivation is :family.
 
-= derivation, if present, must be one of:
+= derivation must be one of:
   - i[ndependent], this is the default;
   - d[erived];
   - f[amily].
 
 = set, if present, must be the name of an existing set;
 
-= stage, if present, must be one of:
-  - e[mpty-set];
-  - 1 or f[irst-element];
-  - n or a[dditional-element];
-  - * or A[lways];
-  - + or N[on-empty-set]."
-  (do-GAMS-declarations ((file-name &optional (derivation "i") set-name stage) . comment) file
-    (declare (ignore comment))
-    (let ((derivation (ecase (elt (string-trim '(#\') derivation) 0)
-                        (#\i :independent)
-                        (#\d :derived)
-                        (#\f :family)))
-          (set     (find-set-from-name set-name))
-          (stage   (when stage
-                     (ecase (elt (string-trim '(#\') stage) 0)
-                       (#\e       :empty-set)
-                       ((#\1 #\f) :first-element)
-                       ((#\n #\a) :additional-element)
-                       ((#\* #\A) :always)
-                       ((#\+ #\N) :non-empty-set)))))
-      (when (and (not (or
-                       (null set-name)
-                       (zerop (length set-name))))
-                 (null set))
-        (error "set-name, if present, must be an existing set name."))
-      (create-strategy file-name derivation set stage))))
+= bound must be a non-negative integer.
+
+The domain descriptor is used to define the domain of a strategy (with which
+list of set-point is the strategy applicable).
+
+/!\\ If an upper is greater than the start size of its associated set, /!\\
+/!\\ the strategy will simply never be used, no error message will be emited. /!\\
+
+If the set is the one specified in the declaration (i.e. if it is the set used
+to derive new points), strategy lower bound must be greater than the set's start
+size."
+  (let ((strategies))
+    (do-GAMS-declarations ((file-name &rest args) . comment) file
+      (cond
+        ((or (ends-with-subseq ".lo" file-name :test #'char-equal)
+             (ends-with-subseq ".up" file-name :test #'char-equal))
+         (let* ((set-name  (first args))
+                (set       (find-set-from-name set-name))
+                (kind      (if (ends-with-subseq ".lo" file-name :test #'char-equal)
+                               :lower
+                               :upper))
+                (file-name (subseq file-name 0 (- (length file-name) 3)))
+                (strategy  (find file-name strategies
+                                 :key #'strategy-file-name
+                                 :test #'string-equal)))
+           (when (null strategy)
+             (error "The strategy ~A does not exist (yet?)" file-name))
+           (when (and (not (or
+                            (null set-name)
+                            (zerop (length set-name))))
+                      (null set))
+             (error "set-name, if present, must be an existing set name."))
+           (when (not (and
+                       (starts-with #\= comment)
+                       (ends-with #\; comment)))
+             (error "Invalid bound designator"))
+           (let ((bound (parse-integer (string-trim '(#\Space)
+                                                    (subseq comment 1 (1- (length comment)))))))
+             (when (minusp bound)
+               (error "bound must be a non-negative integer."))
+             (when (and (eq kind :lower)
+                        (equalp set (strategy-step-set strategy))
+                        (<= bound (1+ (dynamic-set-start-size set))))
+               (error "bound for a step set must be greater than the set start ~
+               size."))
+             (ecase kind
+               (:lower (setf (strategy-set-min-size strategy set) bound))
+               (:upper (setf (strategy-set-max-size strategy set) bound))))))
+        (t (let ((derivation (ecase (elt (string-trim '(#\')
+                                                      (or (first args) "i"))
+                                         0)
+                               (#\i :independent)
+                               (#\d :derived)
+                               (#\f :family)))
+                 (set-name (second args))
+                 (set     (find-set-from-name (second args))))
+             (when (and (not (or
+                              (null set-name)
+                              (zerop (length set-name))))
+                        (null set))
+               (error "set-name, if present, must be an existing set name."))
+             (setq strategies
+                   (cons (make-strategy file-name derivation set)
+                         strategies))))))
+    strategies))
 
 (defun parse-stop-criteria (file)
   "Parses stop criteria list.

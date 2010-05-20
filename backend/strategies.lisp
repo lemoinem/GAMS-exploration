@@ -118,4 +118,3 @@ Step-set will be ignored if the derivation is :independent."
                     (or step-set
                         (error "Step-set must be not null if the derivation strategy is :derived or :family.")))))
     (%make-strategy file-name derivation step-set)))
-
