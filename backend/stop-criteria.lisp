@@ -93,9 +93,9 @@ They are always setted to, respectively:
 - the result points back store.
 These variables are read-only.
 The behavior is undefined any of them is modified within the evaluation of the criterion."
-  `(push (%make-stop-criterion ',name
-                               (lambda ,args
-                                 (declare (type set-point ,set-point-var)
-                                          (ignorable ,@args))
-                                 ,@body))
+  `(push (make-stop-criterion ',name
+                              (lambda ,args
+                                (declare (type set-point ,set-point-var)
+                                         (ignorable ,@args))
+                                ,@body))
          *stop-criteria*))

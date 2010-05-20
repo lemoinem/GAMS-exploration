@@ -48,13 +48,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
    #:set-point #:make-set-point #:set-point-p
 
 ;;; STRATEGIES
-   #:derivation #:concret-stage #:abstract-stage #:stage
+   #:derivation
 
    #:strategy #:make-stratey #:copy-strategy #:strategy-p
-   #:strategy-file-name #:strategy-derivation #:strategy-stage #:strategy-set
-   #:strategy-name
-
-   #:*independent-strategies* #:create-strategy
+   #:strategy-file-name #:strategy-derivation #:strategy-step-set
+   #:strategy-name #:strategy-set-min-size #:strategy-set-max-size
+   #:strategy-applicable-p
 
 ;;; POINTS
    #:initial-point #:make-initial-point #:copy-initial-point #:initial-point-p
@@ -75,9 +74,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ;;; STOP-CRITERIA
    #:stop-criterion #:make-stop-criterion #:copy-stop-criterion #:stop-criterion-p
-   #:stop-criterion-name #:stop-criterion-function
+   #:stop-criterion-name #:stop-criterion-function #:stop-criteria-reached-p
 
-   #:*independent-stop-criteria*
+   #:*stop-criteria*
    #:sets-max-size #:sets-min-size #:def-stop-criterion
 
 ;;; HELPERS
@@ -85,7 +84,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
    #:set-point->string
    #:set-point->result-coordinate #:set-point->result-known-dimensions
-   #:generate-next-set-point
 
    #:generate-initial-points
    #:initial-point-history
