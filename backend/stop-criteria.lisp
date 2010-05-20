@@ -30,54 +30,40 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defstruct (stop-criterion
-               (:constructor %make-stop-criterion
+               (:constructor make-stop-criterion
                              (name function)))
     "Criterion used to stop the growing of a set.
 function must a callable object receiving 3 arguments."
     (name        nil :read-only t :type symbol)
     (function    nil :read-only t :type function)))
 
-(defmacro make-stop-criterion (name
-                               (&optional (set-var           (gensym "set/"))
-                                          (set-point-var     (gensym "set-point/"))
-                                          (result-points-var (gensym "result-points/")))
-                               &body body
-                               &aux (args (list set-var set-point-var result-points-var)))
-  "Creates a new stop criterion.
-set-var, set-point-var and result-points-var are arguments of the criterion.
-They are always setted to, respectively:
-- the current set;
-- the current set-point;
-- the result points back store.
-These variables are read-only, especialy the result points back store.
-The result is undefined any of them is modified within the evaluation of the criterion."
-  `(%make-stop-criterion ',name
-                         (lambda ,args
-                           (declare (type dynamic-set ,set-var)
-                                    (type set-point ,set-point-var))
-                           (declare (ignorable ,@args))
-                           ,@body)))
-
 (defconstant +check-max-set-size-stop-criterion+
   (if (boundp '+check-max-set-size-stop-criterion+)
       (symbol-value '+check-max-set-size-stop-criterion+)
-      (make-stop-criterion check-max-set-size (set set-point)
-                           (when (dynamic-set-max-size set)
-                             (> (dynamic-set-max-size set)
-                                (gethash set set-point))))))
+      (make-stop-criterion 'check-max-set-size
+                           (lambda (set-point)
+                             (some (lambda (set)
+                                     (when (dynamic-set-max-size set)
+                                       (> (dynamic-set-max-size set)
+                                          (gethash set set-point))))
+                                   *sets*)))))
 
-(defparameter *independent-stop-criteria*
+(defparameter *stop-criteria*
   (list +check-max-set-size-stop-criterion+)
-  "List of stop criteria attached to every set.")
+  "List of stop criteria.")
 
 (defun clear-stop-criteria ()
-  "Removes all loaded stop criteria."
-  (setq *independent-stop-criteria*
+  "Removes all stop criteria."
+  (setq *stop-criteria*
         (list +check-max-set-size-stop-criterion+))
-  (map 'nil (lambda (set)
-              (setf (dynamic-set-stop-criteria set) nil))
-       *sets*)
   (values))
+
+(defun stop-criteria-reached-p (set-point result-points)
+  (some (lambda (stop-criterion)
+          (declare (type stop-criterion stop-criterion))
+          (funcall (stop-criterion-function stop-criterion)
+                   set-point result-points))
+        *stop-criteria*))
 
 (defmacro sets-max-size (&rest args)
   "Assignes various max sizes to dynamic sets.
@@ -89,33 +75,27 @@ args is a alist of pairs set-name/size."
 
 (defmacro sets-min-size (&rest args)
   "Assignes various min sizes to dynamic sets.
-args is a alist of pairs set-name/size."  `(setf
+args is a alist of pairs set-name/size."
+  `(setf
     ,@(loop
          for (set size) on args by #'cddr
          append (list `(dynamic-set-min-size (find-set-from-name ',set)) size))))
 
-(defmacro def-stop-criterion (decl
-                              (&optional (set-var           (gensym "set/"))
-                                         (set-point-var     (gensym "set-point/"))
+(defmacro def-stop-criterion (name
+                              (&optional (set-point-var     (gensym "set-point/"))
                                          (result-points-var (gensym "result-points/")))
                               &body body
-                              &aux (args (list set-var set-point-var result-points-var)))
-  "Defines (creates and attaches) a new stop criterion.
-/!\\ c.f. MAKE-STOP-CRITERION /!\\.
-decl may be either:
-- the name of the criterion
-- corresponding to the following destructuring lambda list:
-  (name &optional set).
-
-If set is non-null, it's must be a set-name-descriptor,
-   and the criterion will be attached to the specified."
-  (let ((name (if (listp decl)
-                  (first decl)
-                  decl))
-        (set  (make-set-name (when (listp decl)
-                               (second decl)))))
-    `(let ((stop-criterion (make-stop-criterion ,name ,args ,@body)))
-       (push stop-criterion
-             ,(if set
-                  `(dynamic-set-stop-criteria (find-set-from-name ,set))
-                  '*independent-stop-criteria*)))))
+                              &aux (args (list set-point-var result-points-var)))
+  "Creates a new stop criterion.
+set-point-var and result-points-var are arguments of the criterion.
+They are always setted to, respectively:
+- the current set-point;
+- the result points back store.
+These variables are read-only.
+The behavior is undefined any of them is modified within the evaluation of the criterion."
+  `(push (%make-stop-criterion ',name
+                               (lambda ,args
+                                 (declare (type set-point ,set-point-var)
+                                          (ignorable ,@args))
+                                 ,@body))
+         *stop-criteria*))

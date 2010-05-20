@@ -126,6 +126,7 @@ Current args:~%~A" *arguments*)
 
            while set-point
 
+           unless (stop-criteria-reached-p set-point result-points)
            do (load-set-point set-point)
              (map 'nil (rcurry #'write-initial-point initial-points-directory) initial-points)
              (setq feasible-point-found-p nil)
