@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:in-package #:cl)
 
-(declaim (optimize debug))
+(declaim (optimize speed))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'alexandria)
