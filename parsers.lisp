@@ -144,8 +144,9 @@ The values of derivation may be enclosed in single quotes.
 The domain descriptor is used to define the domain of a strategy (with which
 list of set-point is the strategy applicable).
 
-/!\\ If an upper is greater than the start size of its associated set, /!\\
-/!\\ the strategy will simply never be used, no error message will be emited. /!\\
+/!\\ If an upper bound is greater than the start size of its associated set,
+/!\\ /!\\ the strategy will simply never be used, no error message will be
+emited. /!\\
 
 If the set is the one specified in the declaration (i.e. if it is the set used
 to derive new points), strategy lower bound must be greater than the set's start
