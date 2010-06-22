@@ -303,7 +303,7 @@ Advanced stop criteria may be defined using the DEF-STOP-CRITERION macro."
            (string line))
   (let ((columns (split-sequence #\Space line
                                  :remove-empty-subseqs t)))
-    (assert (member (length columns) '(6 7) :test #'=))
+    (assert (<= 6 (length columns) 8))
     (setf (gethash (make-point-key (third columns)) point)
           (let ((value (fifth columns)))
             (if (string= "." value)
