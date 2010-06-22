@@ -61,11 +61,17 @@ function must a callable object receiving 3 arguments."
   (values))
 
 (defun stop-criteria-reached-p (set-point result-points)
-  (some (lambda (stop-criterion)
-          (declare (type stop-criterion stop-criterion))
-          (funcall (stop-criterion-function stop-criterion)
-                   set-point result-points))
-        *stop-criteria*))
+  (and (every (lambda (set)
+                (declare (type dynamic-set set))
+                (when (dynamic-set-min-size set)
+                  (> (gethash set set-point)
+                     (dynamic-set-min-size set))))
+              *sets*)
+       (some (lambda (stop-criterion)
+               (declare (type stop-criterion stop-criterion))
+               (funcall (stop-criterion-function stop-criterion)
+                        set-point result-points))
+             *stop-criteria*)))
 
 (defmacro sets-max-size (&rest args)
   "Assignes various max sizes to dynamic sets.

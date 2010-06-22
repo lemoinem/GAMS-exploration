@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (cl:in-package #:cl)
 
-(declaim (optimize speed))
+(declaim (optimize debug))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (require 'alexandria)
@@ -172,9 +172,13 @@ Current args:~%~A" *arguments*)
                                         for new-set-point = (let ((p (copy-hash-table set-point)))
                                                               (incf (gethash set p))
                                                               p)
-                                        unless (and (dynamic-set-max-size set)
-                                                    (>= (gethash set new-set-point)
-                                                        (dynamic-set-max-size set)))
+                                        unless (and
+                                                (not (and  (dynamic-set-min-size set)
+                                                           (> (dynamic-set-min-size set)
+                                                              (gethash set new-set-point))))
+                                                (dynamic-set-max-size set)
+                                                (> (gethash set new-set-point)
+                                                   (dynamic-set-max-size set)))
                                         collect new-set-point)))
 
 
