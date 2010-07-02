@@ -172,13 +172,13 @@ Current args:~%~A" *arguments*)
                                         for new-set-point = (let ((p (copy-hash-table set-point)))
                                                               (incf (gethash set p))
                                                               p)
-                                        unless (and
-                                                (not (and  (dynamic-set-min-size set)
-                                                           (> (dynamic-set-min-size set)
-                                                              (gethash set new-set-point))))
-                                                (dynamic-set-max-size set)
-                                                (> (gethash set new-set-point)
-                                                   (dynamic-set-max-size set)))
+                                        when (or
+                                              (and (dynamic-set-min-size set)
+                                                   (>= (dynamic-set-min-size set)
+                                                       (gethash set new-set-point)))
+                                              (null (dynamic-set-max-size set))
+                                              (> (gethash set new-set-point)
+                                                 (dynamic-set-max-size set)))
                                         collect new-set-point)))
 
 
